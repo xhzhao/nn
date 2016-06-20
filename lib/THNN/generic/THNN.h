@@ -2,6 +2,120 @@
 #define TH_GENERIC_FILE "generic/THNN.h"
 #else
 
+
+
+//////////////////////////////////////////////////////////xhzhao add start:
+TH_API void THNN_(SpatialConvolutionMM_compare)(
+          THNNState * state,
+          THTensor * mkldnn,
+          THTensor * old,
+          long long len,
+	  int compareSource
+        );
+
+/*Convolution*/
+TH_API void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *output,
+          THTensor *weight,
+          THTensor *bias,
+          THTensor *finput,
+          THTensor *fgradInput,
+          THLongTensor *primitives,
+          int initOk,
+          int kW,
+          int kH,
+          int dW,
+          int dH,
+          int padW,
+          int padH);
+TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *gradOutput,
+          THTensor *gradInput,
+          THTensor *weight,
+          THTensor *bias,
+          THTensor *finput,
+          THTensor *fgradInput,
+          THLongTensor *primitives,
+          int kW,
+          int kH,
+          int dW,
+          int dH,
+          int padW,
+          int padH);
+TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *gradOutput,
+          THTensor *gradWeight,
+          THTensor *gradBias,
+          THTensor *finput,
+          THTensor *fgradInput,
+          THLongTensor *primitives,
+          int kW,
+          int kH,
+          int dW,
+          int dH,
+          int padW,
+          int padH,
+          real scale);
+
+/*Relu*/
+void THNN_(Threshold_MKLDNN_updateOutput)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *output,
+          real threshold,
+          real val,
+          bool inplace,
+          THLongTensor *primitives,
+          int initOk);
+void THNN_(Threshold_MKLDNN_updateGradInput)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *gradOutput,
+          THTensor *gradInput,
+          real threshold,
+          bool inplace,
+          THLongTensor *primitives);
+
+/*MaxPooling*/
+void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *output,
+          THTensor *indices,
+          int kW,
+          int kH,
+          int dW,
+          int dH,
+          int padW,
+          int padH,
+          bool ceil_mode,
+          THLongTensor *primitives,
+          int initOk);
+
+void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *gradOutput,
+          THTensor *gradInput,
+          THTensor *indices,
+          int kW,
+          int kH,
+          int dW,
+          int dH,
+          int padW,
+          int padH,
+          bool ceil_mode,
+          THLongTensor *primitives);
+
+////////////////////////////////////////////////////////////////////////////xhzhao add end.
+
+
 TH_API void THNN_(Abs_updateOutput)(
           THNNState *state,            // library's state
           THTensor *input,             // input tensor
