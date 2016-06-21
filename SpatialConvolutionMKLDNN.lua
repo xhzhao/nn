@@ -169,7 +169,6 @@ function SpatialConvolutionMM:updateGradInput(input, gradOutput)
 				 gradOutput:cdata(),
 				 self.gradInput:cdata(),
 				 self.weight:cdata(),
-				 self.bias:cdata(),
 				 self.finput:cdata(),
 				 self.fgradInput:cdata(),
 				 self.kW, self.kH,
