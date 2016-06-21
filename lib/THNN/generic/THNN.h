@@ -64,7 +64,7 @@ TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
           real scale);
 
 /*Relu*/
-void THNN_(Threshold_MKLDNN_updateOutput)(
+TH_API void THNN_(Threshold_MKLDNN_updateOutput)(
           THNNState *state,
           THTensor *input,
           THTensor *output,
@@ -73,7 +73,7 @@ void THNN_(Threshold_MKLDNN_updateOutput)(
           bool inplace,
           THLongTensor *primitives,
           int initOk);
-void THNN_(Threshold_MKLDNN_updateGradInput)(
+TH_API void THNN_(Threshold_MKLDNN_updateGradInput)(
           THNNState *state,
           THTensor *input,
           THTensor *gradOutput,
@@ -83,7 +83,7 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
           THLongTensor *primitives);
 
 /*MaxPooling*/
-void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
+TH_API void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
           THNNState *state,
           THTensor *input,
           THTensor *output,
@@ -98,7 +98,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
           THLongTensor *primitives,
           int initOk);
 
-void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
+TH_API void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
           THNNState *state,
           THTensor *input,
           THTensor *gradOutput,

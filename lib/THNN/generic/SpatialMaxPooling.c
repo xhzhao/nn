@@ -101,6 +101,18 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(
 #endif
 }
 
+static void THNN_(SpatialMaxPooling_updateGradInput_frame)(
+          real *gradInput_p,
+          real *gradOutput_p,
+          real *ind_p,
+          long nslices,
+          long iwidth,
+          long iheight,
+          long owidth,
+          long oheight,
+          int dW,
+          int dH);
+
 void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
           THNNState *state,
           THTensor *input,
