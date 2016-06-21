@@ -43,7 +43,7 @@ function Threshold:updateOutput(input)
 	      self.threshold,
 	      self.val,
 	      self.inplace,
-	      self.dnnPrimitives,
+	      self.dnnPrimitives:cdata(),
 	      self.mkldnnInitOk
 	   )
 	   outSize = tonumber(tmpOut:cdata().size[0]*tmpOut:cdata().size[1]*tmpOut:cdata().size[2]*tmpOut:cdata().size[3])
@@ -56,7 +56,7 @@ function Threshold:updateOutput(input)
       self.threshold,
       self.val,
       self.inplace,
-      self.dnnPrimitives,
+      self.dnnPrimitives:cdata(),
       self.mkldnnInitOk
    )
    end
@@ -91,7 +91,7 @@ function Threshold:updateGradInput(input, gradOutput)
 	      tmpGradInput:cdata(),
 	      self.threshold,
 	      self.inplace,
-	      self.dnnPrimitives
+	      self.dnnPrimitives:cdata()
 	   )
 	   --print("mkldnn Threshold backward compare")
 	   outSize = tonumber(tmpGradInput:cdata().size[0]*tmpGradInput:cdata().size[1]*tmpGradInput:cdata().size[2]*tmpGradInput:cdata().size[3])
@@ -103,7 +103,7 @@ function Threshold:updateGradInput(input, gradOutput)
 	      self.gradInput:cdata(),
 	      self.threshold,
 	      self.inplace,
-	      self.dnnPrimitives
+	      self.dnnPrimitives:cdata()
 	   )
    end
    if self.timerEnable then
