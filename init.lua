@@ -175,8 +175,6 @@ require('nn.SpatialConvolutionMKLDNN')
 require('nn.SpatialMaxPoolingMKLDNN')
 require('nn.ThresholdMKLDNN')
 require('nn.ReLUMKLDNN')
-require('nn.BatchNormalizationMKLDNN')
-require('nn.SpatialBatchNormalizationMKLDNN')
 
 
 return nn
