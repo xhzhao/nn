@@ -32,7 +32,6 @@ static dnnError_t  THNN_(init_conversion)(dnnPrimitive_t *cv, real **ptr_out,
 		}
 		return E_SUCCESS;
 	}
-
 }
 
 
@@ -44,28 +43,39 @@ void THNN_(SpatialConvolutionMM_compare)(
 	  int compareSource
 	)
 {
-	real * ptr1 = THTensor_(data)(mkldnn);
-	real * ptr2 = THTensor_(data)(old);
-	long long i = 0;
-	for(i=0; i< len; i++)
-	{
-		if( (ptr1[i]-ptr2[i] > 0.01 ) || (ptr1[i]-ptr2[i] < -0.01 ))
-		{
-			break;
-		}
-	}
+    real * ptr1 = THTensor_(data)(mkldnn);
+    real * ptr2 = THTensor_(data)(old);
+    long long i = 0;
+    int bZeros = 1;
+    real threshold = 0.0001;
+    if(compareSource == 2 || compareSource == 3 || compareSource == 5 || compareSource == 7)
+    {   
+        threshold = 0.00001;
+    }   
 
-	if(i == len)
-	{
+    for(i=0; i< len; i++)
+    {   
+        if( (ptr1[i]-ptr2[i] > threshold ) || (ptr1[i]-ptr2[i] < (0-threshold) ))
+        {
+            break;
+        }
+        if(ptr1[i] > threshold || ptr1[i] < (0-threshold))
+        {
+            bZeros = 0;
+        }
+    }   
+
+    if(i == len)
+    {   
 //#if LOG_ENABLE
-		fprintf(stderr, "	compareSource = %d, mkldnn is same as old, good. len =%ld, mkldnn[0]=%.3f,mkldnn[1]=%.3f,mkldnn[2]=%.3f, mkldnn[15]=%.3f, old[15]=%.3f\n",
-  			compareSource,len,ptr1[0],ptr1[1],ptr1[2], ptr1[15], ptr2[15]);
-//#endif	
-	}
-	else
-	{
-		fprintf(stderr, "	compareSource = %d, compare fail: i =%d, len=%d, mkldnn[i] = %.4f, old[i]=%.4f \n", compareSource, i, len, ptr1[i], ptr2[i]);
-	}
+        fprintf(stderr, "   compareSource = %d, mkldnn is same as old, good. len =%ld, bZeros=%d, mkldnn[0]=%.4f,mkldnn[1]=%.4f,mkldnn[2]=%.4f, mkldnn[15]=%.4f, old[15]=%.4f\n",
+            compareSource,len,bZeros,ptr1[0],ptr1[1],ptr1[2], ptr1[15], ptr2[15]);
+//#endif    
+    }   
+    else
+    {   
+        fprintf(stderr, "   compareSource = %d, compare fail: i =%d, len=%d, mkldnn[i] = %.5f, old[i]=%.5f ,mkldnn/old=%.4f \n", compareSource, i, len, ptr1[i], ptr2[i],ptr1[i]/ptr2[i]);
+    }
 
 }
 
@@ -102,7 +112,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init)(
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
-	int compareResult[4] = {2};
+
 
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
@@ -113,24 +123,25 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init)(
 	size_t biasStrides[1] = { 1 };
 	//size_t biasStrides[1] = { outputStrides[2] };
 
-	dnnLayout_t lt_user_input, lt_user_filt, lt_user_bias, lt_user_output;
-	// Convolution describes what layout it expects
-	dnnLayout_t lt_conv1_input, lt_conv1_filt, lt_conv1_bias, lt_conv1_output;
+	//user layouts
+	dnnLayout_t lt_user_input, lt_user_filter, lt_user_bias, lt_user_output;
+	//forward layouts
+	dnnLayout_t lt_forward_conv_input, lt_forward_conv_filter, lt_forward_conv_bias, lt_forward_conv_output;
+	//backward data layouts
+	dnnLayout_t lt_bwddata_conv_input, lt_bwddata_conv_filter,lt_bwddata_conv_output;
+	//backward filter layouts
+	dnnLayout_t lt_bwdfilter_conv_input, lt_bwdfilter_conv_filter,lt_bwdfilter_conv_output;
 
-	dnnLayout_t lt_conv_diff_src = NULL;	//for backward data
-	dnnLayout_t lt_conv_diff_filter = NULL; //for backward filter
+	//forward conversions and buffers
+	dnnPrimitive_t cv_forward_input = NULL,cv_forward_filter = NULL,cv_forward_bias = NULL,cv_forward_output = NULL;
+	real * buffer_forward_input =NULL;real *buffer_forward_filter=NULL;real *buffer_forward_bias=NULL;real * buffer_forward_output =NULL;
+	//backward data conversions and buffers
+	dnnPrimitive_t cv_bwddata_input = NULL,cv_bwddata_filter = NULL,cv_bwddata_output = NULL;
+	real * buffer_bwddata_input = NULL;real * buffer_bwddata_filter = NULL;real * buffer_bwddata_output=NULL;
+	//backward filter conversions and buffers
+	dnnPrimitive_t cv_bwdfilter_input = NULL,cv_bwdfilter_filter = NULL,cv_bwdfilter_output = NULL;
+	real * buffer_bwdfilter_input = NULL;real * buffer_bwdfilter_filter = NULL;real * buffer_bwdfilter_output = NULL;
 
-	dnnPrimitive_t cv_user_to_conv1_input = NULL,
-		cv_user_to_conv1_filt = NULL,
-		cv_user_to_conv1_bias = NULL,
-		cv_user_to_conv1_output = NULL,
-		cv_conv_to_user_output = NULL,
-		cv_conv_to_user_input = NULL,
-		cv_conv_to_user_filt = NULL;
-	real * newInPtr = NULL;
-	real * newFilterPtr = NULL;
-	real * newBiasPtr = NULL;
-	real * newOutPtr = NULL;
 
 #if NEW_INTERFACE
 /*for new interface*/
@@ -143,7 +154,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init)(
 	if(sizeof(real) == sizeof(float))
 	{
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
-		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filt, dimension, filterSize, filterStrides), err );
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
 
@@ -158,36 +169,104 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init)(
 
 #endif
 
-		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_conv1_input, m_conv_forward, dnnResourceSrc) , err );
-		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_conv1_filt, m_conv_forward, dnnResourceFilter), err );
-		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_conv1_bias, m_conv_forward, dnnResourceBias) , err );
-		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_conv1_output,m_conv_forward, dnnResourceDst) , err );	
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_forward_conv_input, m_conv_forward, dnnResourceSrc) , err );
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_forward_conv_filter, m_conv_forward, dnnResourceFilter), err );
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_forward_conv_bias, m_conv_forward, dnnResourceBias) , err );
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_forward_conv_output,m_conv_forward, dnnResourceDst) , err );	
+
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwddata_conv_input, m_conv_bwd_data, dnnResourceDiffSrc) , err );
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwddata_conv_filter, m_conv_bwd_data, dnnResourceFilter) , err );
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwddata_conv_output, m_conv_bwd_data, dnnResourceDiffDst) , err );
+
+		int check1,check2,check3;
+		check1 = dnnLayoutCompare_F32(lt_bwddata_conv_input, lt_user_input);
+		check2 = dnnLayoutCompare_F32(lt_bwddata_conv_filter, lt_user_filter);
+		check3 = dnnLayoutCompare_F32(lt_bwddata_conv_output, lt_user_output);
+		//fprintf(stderr, "	check1=%d, check2=%d, check3=%d",check1,check2,check3);
+
+		int check4,check5,check6;
+		check4 = dnnLayoutCompare_F32(lt_bwddata_conv_input, lt_forward_conv_input);
+		check5 = dnnLayoutCompare_F32(lt_bwddata_conv_filter, lt_forward_conv_filter);
+		check6 = dnnLayoutCompare_F32(lt_bwddata_conv_output, lt_forward_conv_output);
+		//fprintf(stderr, "	check4=%d, check5=%d, check6=%d \n",check4,check5,check6);
 
 
-		CHECK_ERR( THNN_(init_conversion)(&cv_user_to_conv1_input, &newInPtr, lt_conv1_input, lt_user_input) , err );
-		CHECK_ERR( THNN_(init_conversion)(&cv_user_to_conv1_filt, &newFilterPtr, lt_conv1_filt, lt_user_filt), err );
-		CHECK_ERR( THNN_(init_conversion)(&cv_user_to_conv1_bias, &newBiasPtr, lt_conv1_bias, lt_user_bias), err );
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwdfilter_conv_input, m_conv_bwd_filter, dnnResourceSrc) , err );
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwdfilter_conv_filter, m_conv_bwd_filter, dnnResourceDiffFilter) , err );
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwdfilter_conv_output, m_conv_bwd_filter, dnnResourceDiffDst) , err );
 
-
-		if (!dnnLayoutCompare_F32(lt_user_output, lt_conv1_output)) {
-			//fprintf(stderr, "compare fail, need to do conversion.\n");
-			CHECK_ERR( dnnConversionCreate_F32(&cv_conv_to_user_output, lt_conv1_output, lt_user_output), err );
-			CHECK_ERR( dnnConversionCreate_F32(&cv_user_to_conv1_output, lt_user_output, lt_conv1_output), err );
-			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&newOutPtr), lt_conv1_output), err );
+		//init forward conversions:
+		CHECK_ERR( THNN_(init_conversion)(&cv_forward_input, 	&buffer_forward_input, 	lt_forward_conv_input, 	lt_user_input) , err );
+		CHECK_ERR( THNN_(init_conversion)(&cv_forward_filter, 	&buffer_forward_filter, lt_forward_conv_filter, lt_user_filter), err );
+		CHECK_ERR( THNN_(init_conversion)(&cv_forward_bias, 	&buffer_forward_bias, 	lt_forward_conv_bias, 	lt_user_bias), err );
+		if(!dnnLayoutCompare_F32(lt_forward_conv_output, lt_user_output))
+		{
+			CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, 	lt_forward_conv_output, lt_user_output), err );
+			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_forward_conv_output), err );
 		}
-		
-		
-   		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_conv_diff_src, m_conv_bwd_data,dnnResourceDiffSrc), err );
-		if (!dnnLayoutCompare_F32(lt_user_input, lt_conv_diff_src)) {
-			//fprintf(stderr, "compare fail, need to do conversion.\n");
-			CHECK_ERR( dnnConversionCreate_F32(&cv_conv_to_user_input, lt_conv_diff_src, lt_user_input), err );
+
+		//init backward data conversion:
+		if(!dnnLayoutCompare_F32(lt_bwddata_conv_input, lt_user_input))
+		{
+			CHECK_ERR( dnnConversionCreate_F32(&cv_bwddata_input, lt_bwddata_conv_input, lt_user_input), err );
+
+			if(dnnLayoutCompare_F32(lt_forward_conv_input, lt_bwddata_conv_input))
+			{
+				buffer_bwddata_input = buffer_forward_input;
+			}
+			else
+			{
+				CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_bwddata_input), lt_bwddata_conv_input), err );
+				fprintf(stderr, "bwddata init 1\n");
+			}
 		}
 
+		if(dnnLayoutCompare_F32(lt_forward_conv_filter, lt_bwddata_conv_filter))
+		{
+			cv_bwddata_filter = cv_forward_filter;
+			buffer_bwddata_filter = buffer_forward_filter;
+			fprintf(stderr, "bwdfilter init 2\n");
+		}
+		else
+		{
+			CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_filter, 	&buffer_bwddata_filter, lt_bwddata_conv_filter, lt_user_filter) , err );
+		}
 
-		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_conv_diff_filter, m_conv_bwd_filter,dnnResourceDiffFilter), err );
-		if (!dnnLayoutCompare_F32(lt_user_filt, lt_conv_diff_filter)) {
-			//fprintf(stderr, "compare fail, need to do conversion.\n");
-			CHECK_ERR( dnnConversionCreate_F32(&cv_conv_to_user_filt, lt_conv_diff_filter, lt_user_filt), err );
+		CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_output, 	&buffer_bwddata_output, lt_bwddata_conv_output, lt_user_output) , err );
+
+		//init backward filter conversions:
+		if(dnnLayoutCompare_F32(lt_forward_conv_input, lt_bwdfilter_conv_input))
+		{
+			cv_bwdfilter_input = cv_forward_input;
+			buffer_bwdfilter_input = buffer_forward_input;
+		}
+		else
+		{
+			CHECK_ERR( THNN_(init_conversion)(&cv_bwdfilter_input, &buffer_bwdfilter_input, lt_bwdfilter_conv_input, lt_user_input) , err );
+		}
+		if(!dnnLayoutCompare_F32(lt_bwdfilter_conv_filter, lt_user_filter))
+		{
+			CHECK_ERR( dnnConversionCreate_F32(&cv_bwdfilter_filter, lt_bwdfilter_conv_filter, lt_user_filter), err );
+			if(dnnLayoutCompare_F32(lt_forward_conv_filter, lt_bwdfilter_conv_filter))
+			{
+				buffer_bwdfilter_filter = buffer_forward_filter;
+			}
+			else
+			{
+				CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_bwdfilter_filter), lt_bwdfilter_conv_filter), err );
+			}
+		}
+
+		if(dnnLayoutCompare_F32(lt_bwddata_conv_output, lt_bwdfilter_conv_output))
+		{
+			//fprintf(stderr, "bwdfilter init 3");
+			cv_bwdfilter_output = cv_bwddata_output;
+			buffer_bwdfilter_output = buffer_bwddata_output;
+		}
+		else 
+
+		{
+			CHECK_ERR( THNN_(init_conversion)(&cv_bwdfilter_output, &buffer_bwdfilter_output, lt_bwdfilter_conv_output, lt_user_output) , err );
 		}
 
 	}
@@ -209,31 +288,34 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init)(
 	primitives->storage->data[BWD_DATA_INDEX] = (long long)m_conv_bwd_data;
 	primitives->storage->data[BWD_FILTER_INDEX] = (long long)m_conv_bwd_filter;
 
-	primitives->storage->data[CONVERT_INPUT_INDEX] = (long long)cv_user_to_conv1_input;
-	primitives->storage->data[CONVERT_FILTER_INDEX] = (long long)cv_user_to_conv1_filt;
-	primitives->storage->data[CONVERT_BIAS_INDEX] = (long long)cv_user_to_conv1_bias;
-	primitives->storage->data[CONVERT_CONV_OUTPUT_INDEX] = (long long)cv_user_to_conv1_output;
+	primitives->storage->data[CONVERT_FORWARD_INPUT] 	= (long long)cv_forward_input;
+	primitives->storage->data[CONVERT_FORWARD_FILTER] 	= (long long)cv_forward_filter;
+	primitives->storage->data[CONVERT_FORWARD_BIAS] 	= (long long)cv_forward_bias;
+	primitives->storage->data[CONVERT_FORWARD_OUTPUT] 	= (long long)cv_forward_output;
 
-	primitives->storage->data[CONVERT_OUTPUT_INDEX] = (long long)cv_conv_to_user_output;
-	primitives->storage->data[CONVERT_BWDDATA_INDEX] = (long long)cv_conv_to_user_input;
-	primitives->storage->data[CONVERT_BWDFILTER_INDEX] = (long long)cv_conv_to_user_filt;
+	primitives->storage->data[CONVERT_BWDDATA_INPUT] 	= (long long)cv_bwddata_input;
+	primitives->storage->data[CONVERT_BWDDATA_FILTER] 	= (long long)cv_bwddata_filter;
+	primitives->storage->data[CONVERT_BWDDATA_OUTPUT] 	= (long long)cv_bwddata_output;
+
+	primitives->storage->data[CONVERT_BWDFILTER_INPUT] 	= (long long)cv_bwdfilter_input;
+	primitives->storage->data[CONVERT_BWDFILTER_FILTER] 	= (long long)cv_bwdfilter_filter;
+	primitives->storage->data[CONVERT_BWDFILTER_OUTPUT] 	= (long long)cv_bwdfilter_output;
+
+	primitives->storage->data[BUFFER_FORWARD_INPUT] 	= (long long)buffer_forward_input;
+	primitives->storage->data[BUFFER_FORWARD_FILTER] 	= (long long)buffer_forward_filter;
+	primitives->storage->data[BUFFER_FORWARD_BIAS] 		= (long long)buffer_forward_bias;
+	primitives->storage->data[BUFFER_FORWARD_OUTPUT] 	= (long long)buffer_forward_output;
+
+	primitives->storage->data[BUFFER_BWDDATA_INPUT] 	= (long long)buffer_bwddata_input;
+	primitives->storage->data[BUFFER_BWDDATA_FILTER] 	= (long long)buffer_bwddata_filter;
+	primitives->storage->data[BUFFER_BWDDATA_OUTPUT] 	= (long long)buffer_bwddata_output;
+
+	primitives->storage->data[BUFFER_BWDFILTER_INPUT] 	= (long long)buffer_bwdfilter_input;
+	primitives->storage->data[BUFFER_BWDFILTER_FILTER] 	= (long long)buffer_bwdfilter_filter;
+	primitives->storage->data[BUFFER_BWDFILTER_OUTPUT] 	= (long long)buffer_bwdfilter_output;
 
 
-	primitives->storage->data[BUF_CONVERT_INPUT_INDEX] = (long long)newInPtr;
-	primitives->storage->data[BUF_CONVERT_FILTER_INDEX] = (long long)newFilterPtr;
-	primitives->storage->data[BUF_CONVERT_BIAS_INDEX] = (long long)newBiasPtr;
-	primitives->storage->data[BUF_CONVERT_OUTPUT_INDEX] = (long long)newOutPtr;
 
-/*
-	long long temp = (long long)(newInPtr);
-	real * tempPtr = (real *)(temp);
-
-	fprintf(stderr, "		cv1=0x%x, cv2=0x%x, cv3=0x%x \n",cv_user_to_conv1_input,cv_user_to_conv1_filt,cv_user_to_conv1_bias);
-	fprintf(stderr, "		buf1=0x%x, buf2=0x%x, buf3=0x%x \n",newInPtr,newFilterPtr,newBiasPtr);
-	fprintf(stderr, "		sizeof(newInPtr) = %d\n",sizeof(newInPtr));
-	if(cv_user_to_conv1_input) 	fprintf(stderr, "	newInPtr[0]=%.2f,newInPtr[1]=%.2f,newInPtr[10]=%.2f. \n",tempPtr[0],tempPtr[1],tempPtr[10]);
-*/
-	//fprintf(stderr, "		cv1=0x%x, cv2=0x%x, cv3=0x%x, cv4=0x%x \n",cv_user_to_conv1_input,cv_user_to_conv1_filt,cv_user_to_conv1_bias,cv_user_to_conv1_output);
 #if LOG_ENABLE
 	fprintf(stderr, "SpatialConvolutionMM_MKLDNN_init: end, sizeof(real)=%d\n",sizeof(real));
 #endif
@@ -273,28 +355,22 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	int outH = (inH + 2*padH - kH)/dH + 1;
 	int outW = (inW + 2*padW - kW)/dW + 1;
 
-	dnnPrimitive_t cv_user_to_conv1_input = NULL,
-		cv_user_to_conv1_filt = NULL,
-		cv_user_to_conv1_bias = NULL,
-		cv_conv_to_user_output = NULL;
-	real * newInPtr = NULL;
-	real * newFilterPtr = NULL;
-	real * newBiasPtr = NULL;
-	real * newOutPtr = NULL;
+	dnnPrimitive_t cv_forward_input = NULL,cv_forward_filter = NULL,cv_forward_bias = NULL,cv_forward_output = NULL;
+	real * buffer_forward_input =NULL;real *buffer_forward_filter=NULL;real *buffer_forward_bias=NULL;real * buffer_forward_output =NULL;
 
 	if(initOk == 0)
 	{
 		THNN_(SpatialConvolutionMM_MKLDNN_init)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
 	}
-	m_conv_forward = (dnnPrimitive_t) (primitives->storage->data[FORWARD_INDEX]);
-	cv_user_to_conv1_input 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_INPUT_INDEX];
-	cv_user_to_conv1_filt 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_FILTER_INDEX];
-	cv_user_to_conv1_bias 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BIAS_INDEX];
-	cv_conv_to_user_output  = (dnnPrimitive_t)primitives->storage->data[CONVERT_OUTPUT_INDEX];
-	newInPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_INPUT_INDEX]);
-	newFilterPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_FILTER_INDEX]);
-	newBiasPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_BIAS_INDEX]);
-	newOutPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_OUTPUT_INDEX]);
+	m_conv_forward 		= (dnnPrimitive_t)(primitives->storage->data[FORWARD_INDEX]);
+	cv_forward_input 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_FORWARD_INPUT];
+	cv_forward_filter 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_FORWARD_FILTER];
+	cv_forward_bias 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_FORWARD_BIAS];
+	cv_forward_output  	= (dnnPrimitive_t)primitives->storage->data[CONVERT_FORWARD_OUTPUT];
+	buffer_forward_input 	= (real *)(primitives->storage->data[BUFFER_FORWARD_INPUT]);
+	buffer_forward_filter 	= (real *)(primitives->storage->data[BUFFER_FORWARD_FILTER]);
+	buffer_forward_bias 	= (real *)(primitives->storage->data[BUFFER_FORWARD_BIAS]);
+	buffer_forward_output 	= (real *)(primitives->storage->data[BUFFER_FORWARD_OUTPUT]);
 
 
 	THTensor_(resize3d)(finput, N, kW*kH*inC, outH*outW);
@@ -306,6 +382,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	fprintf(stderr, "	output->size[0]=%d,output->size[1]=%d,output->size[2]=%d,output->size[3]=%d \n", output->size[0],output->size[1],output->size[2],output->size[3]);
 	fprintf(stderr, "	weight->size[0]=%d,weight->size[1]=%d\n", weight->size[0],weight->size[1]);
 	fprintf(stderr, "	bias->nDimension=%d,bias->size[0]=%d,bias->storage->data[0]=%.3f\n", bias->nDimension,bias->size[0],bias->storage->data[0]);
+	fprintf(stderr, " cv_forward_input=0x%x,cv_forward_filter=0x%x,cv_forward_bias=0x%x,cv_forward_output=0x%x",cv_forward_input,cv_forward_filter,cv_forward_bias,cv_forward_output);
 #endif
 
 /**/
@@ -315,88 +392,36 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	real * outPtr = THTensor_(data)(output);
 	real * biasPtr = THTensor_(data)(bias);
 
-    //fprintf(stderr, "	input->offset=%d, weight->offset=%d, output->offset=%d, bias->offset=%d\n",input->storageOffset,weight->storageOffset, output->storageOffset,bias->storageOffset);
-/*
-	inPtr = (real *) calloc(N*inC*inH*inW, sizeof(real));
-	filterPtr = (real *) calloc(outC*inC*kH*kW, sizeof(real));
-	biasPtr = (real *) calloc(bias->size[0], sizeof(real));
-	outPtr = (real *) calloc(N*outC*outH*outW, sizeof(real));
-*/
-	//fprintf(stderr, "input[0]=%.2f,input[1]=%.2f,input[2]=%.2f,input[3]=%.2f,input[4]=%.2f\n",inPtr[0],inPtr[1],inPtr[2],inPtr[3],inPtr[4]);
-
-/*	for(i=0; i < input->size[0]*input->size[1]*input->size[2]*input->size[3]; i++)
-	{
-		inPtr[i] = 1;
-	}
-	fprintf(stderr, "		input data init ok. \n");
-	for(i=0; i < output->size[0]*output->size[1]*output->size[2]*output->size[3]; i++)
-	{
-		outPtr[i] = 0;
-	}
-	fprintf(stderr, "		output data init ok. \n");
-
-	for(i=0; i < weight->size[0]*weight->size[1]; i++)
-	{
-		filterPtr[i] = 3;
-	}
-	fprintf(stderr, "		weight data init ok. \n");
-
-	fprintf(stderr, "	filterPtr = 0x%x, biasPtr = 0x%x\n", filterPtr, biasPtr);
-	fprintf(stderr, "	bias->nDimension=%d,bias->size[0]=%d,bias->storage->data[0]=%.3f\n", bias->nDimension,bias->size[0],bias->storage->data[0]);
-	biasPtr = (real *) calloc(10*bias->size[0], sizeof(real));
-	for(i=0; i < bias->size[0]; i++)
-	{
-		biasPtr[i] = 0;
-	}
-	fprintf(stderr, "		bias data init ok. \n");
-
-*/
-
 
 	real * resConv[dnnResourceNumber]={0};
+	resConv[dnnResourceSrc] 	= inPtr;
+	resConv[dnnResourceFilter] 	= filterPtr;
+	resConv[dnnResourceBias] 	= biasPtr;
+	resConv[dnnResourceDst] 	= outPtr;
 	if(sizeof(real) == sizeof(float))
 	{
-		//fprintf(stderr, "		cv1=0x%x, cv2=0x%x, cv3=0x%x, cv4=0x%x\n",cv_user_to_conv1_input,cv_user_to_conv1_filt,cv_user_to_conv1_bias,cv_conv_to_user_output);
-		//fprintf(stderr, "		buf1=0x%x, buf2=0x%x, buf3=0x%x, buf4=0x%x \n",newInPtr,newFilterPtr,newBiasPtr,newOutPtr);
-		if(cv_user_to_conv1_input){
-			resConv[dnnResourceSrc] = newInPtr;
-			//fprintf(stderr, "	newInPtr[0]=%.2f,newInPtr[1]=%.2f,newInPtr[10]=%.2f. \n",newInPtr[0],newInPtr[1],newInPtr[10]);
-			CHECK_ERR( dnnConversionExecute_F32(cv_user_to_conv1_input, inPtr, resConv[dnnResourceSrc]), err );
-			//fprintf(stderr,"	conversion 1 ok.\n" );
-		} 
-		else{
-			resConv[dnnResourceSrc] = inPtr;
+		if(cv_forward_input){
+			resConv[dnnResourceSrc] = buffer_forward_input;
+			CHECK_ERR( dnnConversionExecute_F32(cv_forward_input, inPtr, resConv[dnnResourceSrc]), err );
 		}
 		
-		if(cv_user_to_conv1_filt){
-			resConv[dnnResourceFilter] = newFilterPtr;
-			CHECK_ERR( dnnConversionExecute_F32(cv_user_to_conv1_filt, filterPtr, resConv[dnnResourceFilter]), err );
-			//fprintf(stderr,"	conversion 2 ok.\n" );
+		if(cv_forward_filter){
+			resConv[dnnResourceFilter] = buffer_forward_filter;
+			CHECK_ERR( dnnConversionExecute_F32(cv_forward_filter, filterPtr, resConv[dnnResourceFilter]), err );
 		} 
-		else{
-			resConv[dnnResourceFilter] = filterPtr;
-		}
 		
-		if(cv_user_to_conv1_bias){
-			resConv[dnnResourceBias] = newBiasPtr;
-			CHECK_ERR( dnnConversionExecute_F32(cv_user_to_conv1_bias, biasPtr, resConv[dnnResourceBias]), err );
-			fprintf(stderr,"	conversion 3 ok.\n" );
+		if(cv_forward_bias){
+			resConv[dnnResourceBias] = buffer_forward_bias;
+			CHECK_ERR( dnnConversionExecute_F32(cv_forward_bias, biasPtr, resConv[dnnResourceBias]), err );
 		} 
-		else{
-			resConv[dnnResourceBias] = biasPtr;
-		}
-		if(cv_conv_to_user_output){
-			resConv[dnnResourceDst] = newOutPtr;
+
+		if(cv_forward_output){
+			resConv[dnnResourceDst] = buffer_forward_output;
 		} 
-		else{
-			resConv[dnnResourceDst] = outPtr;
-		}
-		//fprintf(stderr, "		call float api:dnnExecute_F32 start . \n");
 
 		CHECK_ERR(dnnExecute_F32(m_conv_forward, (void**)resConv),err);	
-		if(cv_conv_to_user_output){
-			CHECK_ERR( dnnConversionExecute_F32(cv_conv_to_user_output, newOutPtr, outPtr), err );
-			//fprintf(stderr,"	conversion 4 ok.\n" );
+		if(cv_forward_output){
+			CHECK_ERR( dnnConversionExecute_F32(cv_forward_output, buffer_forward_output, outPtr), err );
 		} 
 		//fprintf(stderr, "		call float api:dnnExecute_F32 end, out[0]=%.2f \n",outPtr[0]);
 	}
@@ -434,23 +459,20 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	gettimeofday(&start,NULL);
 	dnnError_t err;
 	dnnPrimitive_t m_conv_bwdData =NULL; 
-	dnnPrimitive_t cv_user_to_conv1_filt = NULL,
-		cv_user_to_conv1_output = NULL,
-		cv_conv_to_user_input=NULL;
-	real * newInPtr = NULL;
-	real * newFilterPtr = NULL;
-	real * newBiasPtr = NULL;
-	real * newOutPtr = NULL;
+
+	dnnPrimitive_t cv_bwddata_input = NULL,cv_bwddata_filter = NULL,cv_bwddata_output = NULL;
+	real * buffer_bwddata_input = NULL;real * buffer_bwddata_filter = NULL;real * buffer_bwddata_output=NULL;
+
+	THTensor_(transpose)(weight, weight, 0, 1);
 
 	m_conv_bwdData = (dnnPrimitive_t) (primitives->storage->data[BWD_DATA_INDEX]);
+	cv_bwddata_input 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDDATA_INPUT];
+	cv_bwddata_filter 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDDATA_FILTER];
+	cv_bwddata_output  	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDDATA_OUTPUT];
+	buffer_bwddata_input 	= (real *)(primitives->storage->data[BUFFER_BWDDATA_INPUT]);
+	buffer_bwddata_filter 	= (real *)(primitives->storage->data[BUFFER_BWDDATA_FILTER]);
+	buffer_bwddata_output 	= (real *)(primitives->storage->data[BUFFER_BWDDATA_OUTPUT]);
 
-	cv_user_to_conv1_filt 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_FILTER_INDEX];
-	cv_user_to_conv1_output  = (dnnPrimitive_t)primitives->storage->data[CONVERT_CONV_OUTPUT_INDEX];
-	cv_conv_to_user_input	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDDATA_INDEX];
-	newInPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_INPUT_INDEX]);
-	newFilterPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_FILTER_INDEX]);
-	newBiasPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_BIAS_INDEX]);
-	newOutPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_OUTPUT_INDEX]);
 
 
 #if LOG_ENABLE
@@ -465,57 +487,40 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	real * inPtr = THTensor_(data)(gradInput);
 	real * filterPtr = THTensor_(data)(weight);
 	real * outPtr = THTensor_(data)(gradOutput);
-	//real * biasPtr = THTensor_(data)(bias);
 
 	real * resConv[dnnResourceNumber]={0};
 	resConv[dnnResourceDiffSrc] = inPtr;
 	resConv[dnnResourceFilter] = filterPtr;
 	resConv[dnnResourceDiffDst] = outPtr;
-	//resConv[dnnResourceDiffBias] = biasPtr;
 
-/*
-	struct timeval check1;
-	gettimeofday(&check1,NULL);
-	double duration1 = (check1.tv_sec - start.tv_sec) * 1000 + (double)(check1.tv_usec - start.tv_usec) /1000;
-	fprintf(stderr,"	bwdData MKLDNN check1 time = %.2f ms\n",duration1 );
-*/	//fprintf(stderr, "	m_conv = 0x%x, inPtr=0x%x, filterPtr=0x%x, outPtr=0x%x\n", m_conv_bwdData,inPtr,filterPtr,outPtr);
-	
 
 	if(sizeof(real) == sizeof(float))
 	{
-		//fprintf(stderr, "		cv1=0x%x, cv2=0x%x, cv3=0x%x\n",cv_user_to_conv1_filt,cv_user_to_conv1_output,cv_conv_to_user_input);
-		//fprintf(stderr, "		buf1=0x%x, buf2=0x%x, buf3=0x%x\n",newInPtr,newFilterPtr,newOutPtr);
-		if(cv_user_to_conv1_output){
-			resConv[dnnResourceDiffDst] = newOutPtr;
-			CHECK_ERR( dnnConversionExecute_F32(cv_user_to_conv1_output, outPtr, resConv[dnnResourceDiffDst]), err );
-			//fprintf(stderr,"	conversion 1 ok.\n" );
-		} 
-		else{
-			resConv[dnnResourceDiffDst] = outPtr;
+		if(cv_bwddata_output){
+			resConv[dnnResourceDiffDst] = buffer_bwddata_output;
+			CHECK_ERR( dnnConversionExecute_F32(cv_bwddata_output, outPtr, resConv[dnnResourceDiffDst]), err );
+			//fprintf(stderr, "		convert 1 called. \n");
 		}
 		
-		if(cv_user_to_conv1_filt){
-			resConv[dnnResourceFilter] = newFilterPtr;
-			CHECK_ERR( dnnConversionExecute_F32(cv_user_to_conv1_filt, filterPtr, resConv[dnnResourceFilter]), err );
-			//fprintf(stderr,"	conversion 2 ok.\n" );
-		} 
-		else{
-			resConv[dnnResourceFilter] = filterPtr;
-		}
-		if(cv_conv_to_user_input){
-			resConv[dnnResourceDiffSrc] = newInPtr;
-		}
-		else{
-			resConv[dnnResourceDiffSrc] = inPtr;
+		if(cv_bwddata_filter){
+			resConv[dnnResourceFilter] = buffer_bwddata_filter;
+			CHECK_ERR( dnnConversionExecute_F32(cv_bwddata_filter, filterPtr, resConv[dnnResourceFilter]), err );
+			//fprintf(stderr, "		convert 2 called. \n");
 		}
 
-		//fprintf(stderr, "		call float api:dnnExecute_F32 start . \n");
+		if(cv_bwddata_input){
+			resConv[dnnResourceDiffSrc] = buffer_bwddata_input;;
+		}
+
+		
 
 		CHECK_ERR(dnnExecute_F32(m_conv_bwdData, (void**)resConv),err);	
-		if(cv_conv_to_user_input){
-			CHECK_ERR( dnnConversionExecute_F32(cv_conv_to_user_input, newInPtr, inPtr), err );
-			//fprintf(stderr,"	conversion 3 ok.\n" );
+
+		if(cv_bwddata_input){
+			CHECK_ERR( dnnConversionExecute_F32(cv_bwddata_input, buffer_bwddata_input, inPtr), err );
+			//fprintf(stderr, "		convert 3 called. \n");
 		}
+
 	}
 	else if(sizeof(real) == sizeof(double))
 	{
@@ -526,6 +531,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 #if LOG_ENABLE
 	fprintf(stderr,"	bwdData MKLDNN time = %.2f ms\n",duration );
 #endif
+	THTensor_(transpose)(weight, weight, 0, 1);
 }
 
 
@@ -552,22 +558,20 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
 	gettimeofday(&start,NULL);
 	dnnError_t err;
 	dnnPrimitive_t m_conv_bwdFilter =NULL; 
-	dnnPrimitive_t cv_user_to_conv1_input = NULL,
-		cv_user_to_conv1_output = NULL,
-		cv_conv_to_user_filt = NULL;
-	real * newInPtr = NULL;
-	real * newFilterPtr = NULL;
-	real * newBiasPtr = NULL;
-	real * newOutPtr = NULL;
+	dnnPrimitive_t cv_bwdfilter_input = NULL,cv_bwdfilter_filter = NULL,cv_bwdfilter_output = NULL;
+	real * buffer_bwdfilter_input = NULL;real * buffer_bwdfilter_filter = NULL;real * buffer_bwdfilter_output = NULL;
+
 
 	m_conv_bwdFilter = (dnnPrimitive_t) (primitives->storage->data[BWD_FILTER_INDEX]);
-	cv_user_to_conv1_input 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_INPUT_INDEX];
-	cv_user_to_conv1_output  = (dnnPrimitive_t)primitives->storage->data[CONVERT_CONV_OUTPUT_INDEX];
-	cv_conv_to_user_filt 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDFILTER_INDEX];
+	cv_bwdfilter_input 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDFILTER_INPUT];
+	cv_bwdfilter_filter 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDFILTER_FILTER];
+	cv_bwdfilter_output  	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDFILTER_OUTPUT];
+	buffer_bwdfilter_input 	= (real *)(primitives->storage->data[BUFFER_BWDFILTER_INPUT]);
+	buffer_bwdfilter_filter = (real *)(primitives->storage->data[BUFFER_BWDFILTER_FILTER]);
+	buffer_bwdfilter_output = (real *)(primitives->storage->data[BUFFER_BWDFILTER_OUTPUT]);
 
-	newInPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_INPUT_INDEX]);
-	newFilterPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_FILTER_INDEX]);
-	newOutPtr 		= (real *)(primitives->storage->data[BUF_CONVERT_OUTPUT_INDEX]);
+
+
 
 #if LOG_ENABLE
 	fprintf(stderr, "SpatialConvolutionMM_MKLDNN_bwdFilter: start. \n");
@@ -596,31 +600,21 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
 		//fprintf(stderr, "		cv1=0x%x, cv2=0x%x, cv3=0x%x\n",cv_user_to_conv1_input,cv_conv_to_user_filt,cv_user_to_conv1_output);
 		//fprintf(stderr, "		buf1=0x%x, buf2=0x%x, buf3=0x%x\n",newInPtr,newFilterPtr,newOutPtr);
 
-		if(cv_user_to_conv1_input){
-			resConv[dnnResourceSrc] = newInPtr;
-			CHECK_ERR( dnnConversionExecute_F32(cv_user_to_conv1_input, inPtr, resConv[dnnResourceSrc]), err );
-		} 
-		else{
-			resConv[dnnResourceSrc] = inPtr;
+		if(cv_bwdfilter_input){
+			resConv[dnnResourceSrc] = buffer_bwdfilter_input;
+			CHECK_ERR( dnnConversionExecute_F32(cv_bwdfilter_input, inPtr, resConv[dnnResourceSrc]), err );
 		}
-		if(cv_user_to_conv1_output){
-			resConv[dnnResourceDiffDst] = newOutPtr;
-			CHECK_ERR( dnnConversionExecute_F32(cv_user_to_conv1_output, outPtr, resConv[dnnResourceDiffDst]), err );
-		} 
-		else{
-			resConv[dnnResourceDiffDst] = outPtr;
+		if(cv_bwdfilter_output){
+			resConv[dnnResourceDiffDst] = buffer_bwdfilter_output;
+			CHECK_ERR( dnnConversionExecute_F32(cv_bwdfilter_output, outPtr, resConv[dnnResourceDiffDst]), err );
 		}
-		if(cv_conv_to_user_filt){
-			resConv[dnnResourceDiffFilter] = newFilterPtr;
+		if(cv_bwdfilter_filter){
+			resConv[dnnResourceDiffFilter] = buffer_bwdfilter_filter;
 		}
-		else{
-			resConv[dnnResourceDiffFilter] = filterPtr;
-		}
-
 
 		CHECK_ERR(dnnExecute_F32(m_conv_bwdFilter, (void**)resConv),err);
-		if(cv_conv_to_user_filt){
-			CHECK_ERR( dnnConversionExecute_F32(cv_conv_to_user_filt, newFilterPtr, filterPtr), err );
+		if(cv_bwdfilter_filter){
+			CHECK_ERR( dnnConversionExecute_F32(cv_bwdfilter_filter, buffer_bwdfilter_filter, filterPtr), err );
 		}
 		//fprintf(stderr, "		call float api:dnnExecute_F32 end, out[0]=%.2f \n",outPtr[0]);
 	}
