@@ -14,12 +14,14 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(
           int kW,
           int dH,
           int dW,
+	  int padH,
+	  int padW,
           int outC,
           int outH,
           int outW)
 {
 #if LOG_ENABLE
-	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,outC,outH,outW );
+	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,dH=%d,dW=%d,padH=%d,padW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW );
 #endif
 	dnnError_t err;
 
@@ -31,6 +33,8 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(
 
 	size_t kernelSize[2] = { kH, kW };
 	size_t kernelStride[2] = { dH, dW };
+	int pad[dimension-2] = 	{-padW,-padH};
+
 
 	real * resPool1[dnnResourceNumber] = {0};
 	dnnLayout_t lt_user_input = NULL,lt_user_output=NULL;
@@ -47,54 +51,65 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(
 	dnnPrimitive_t pool1 = NULL;
 	dnnPrimitive_t pool_bwd = NULL;
 #if NEW_INTERFACE
-	CHECK_ERR( dnnPoolingCreateForward_F32(&pool1, attributes, dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, inputOffset, dnnBorderZeros), err );
-	CHECK_ERR( dnnPoolingCreateBackward_F32(&pool_bwd,attributes,dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, inputOffset,dnnBorderZeros), err );
+	CHECK_ERR( dnnPoolingCreateForward_F32(&pool1, attributes, dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, pad, dnnBorderZeros), err );
+	CHECK_ERR( dnnPoolingCreateBackward_F32(&pool_bwd,attributes,dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, pad,dnnBorderZeros), err );
 #else
 	CHECK_ERR( dnnPoolingCreateForward_F32(&pool1, dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, inputOffset, dnnBorderZeros), err );
 	CHECK_ERR( dnnPoolingCreateBackward_F32(&pool_bwd, dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, inputOffset,dnnBorderZeros), err );
 #endif
-	dnnLayout_t lt_pool1_output = NULL,lt_pool1_input = NULL,
-		lt_pool1_workspace = NULL;
+	dnnLayout_t lt_pool_forward_output = NULL,lt_pool_forward_input = NULL,lt_pool_forward_workspace = NULL;
+	dnnLayout_t lt_pool_backward_output = NULL,lt_pool_backward_input = NULL,lt_pool_backward_workspace = NULL;
+
+	dnnPrimitive_t cv_forward_input = NULL,cv_forward_output = NULL;
+	dnnPrimitive_t cv_backward_input = NULL,cv_backward_output = NULL;
+
+	real * buffer_forward_input = NULL;	real * buffer_forward_output = NULL;	real * buffer_forward_workspace = NULL;
+	real * buffer_backward_input = NULL;	real * buffer_backward_output = NULL;	real * buffer_backward_workspace = NULL;
+
+
 	
-	real * workspacePtr = NULL;
-	
-	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool1_output, pool1, dnnResourceDst), err );
-	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool1_workspace, pool1, dnnResourceWorkspace), err );
-	CHECK_ERR( dnnAllocateBuffer_F32((void**)&workspacePtr, lt_pool1_workspace) , err );
+	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_forward_input, pool1, dnnResourceSrc), err );	
+	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_forward_output, pool1, dnnResourceDst), err );
+	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_forward_workspace, pool1, dnnResourceWorkspace), err );
+	CHECK_ERR( dnnAllocateBuffer_F32((void**)&buffer_forward_workspace, lt_pool_forward_workspace) , err );
 
-#if 0
-	real * newOutPtr = NULL;
-	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool1_input, pool1, dnnResourceSrc), err );
-	/*check input layout*/
-	int check = dnnLayoutCompare_F32(lt_user_input, lt_pool1_input);
-	fprintf(stderr,"	Pooling, dnnLayoutCompare(lt_user_input, lt_pool1_input) = %d \n",check );
-	/*check output layout*/
-	check = dnnLayoutCompare_F32(lt_user_output, lt_pool1_output);
-	fprintf(stderr,"	Pooling, dnnLayoutCompare(lt_user_output, lt_pool1_output) = %d \n",check );
+	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_backward_input, pool_bwd, dnnResourceDiffSrc), err );	
+	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_backward_output, pool_bwd, dnnResourceDiffDst), err );
+	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_backward_workspace, pool_bwd, dnnResourceWorkspace), err );
+	CHECK_ERR( dnnAllocateBuffer_F32((void**)&buffer_backward_workspace, lt_pool_backward_workspace) , err );
 
-	dnnLayout_t lt_pool_diff = NULL;
-	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_diff, pool_bwd,dnnResourceDiffSrc), err );
-	/*check diff src layout*/
-	int check = dnnLayoutCompare_F32(lt_user_input, lt_pool_diff);
-	fprintf(stderr,"	Pooling, dnnLayoutCompare(lt_user_input, lt_pool_diff) = %d \n",check );
-
-
-	//dnnPrimitive_t cv_pool1_to_user_output = NULL;
-	
-	//CHECK_ERR( THNN_(init_conversion)(&cv_pool1_to_user_output, &newOutPtr, lt_user_output, lt_pool1_output), err );
-
-	if (!dnnLayoutCompare_F32(lt_user_output, lt_pool1_output)) {
-		CHECK_ERR( dnnConversionCreate_F32(&cv_pool1_to_user_output, lt_pool1_output, lt_user_output), err );
-		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&newOutPtr), lt_pool1_output), err );
+	//forward conversion init
+	//CHECK_ERR( THNN_(init_conversion)(&cv_forward_input, &buffer_forward_input, lt_pool_forward_input, lt_user_input), err );
+	if(!dnnLayoutCompare_F32(lt_user_output, lt_pool_forward_output))
+	{
+		fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
+		CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, lt_pool_forward_output, lt_user_output), err );
+		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_pool_forward_output), err );
 	}
 
-#endif
+	//backward conversion init
+	CHECK_ERR( THNN_(init_conversion)(&cv_backward_output, &buffer_backward_output, lt_pool_backward_output, lt_user_output), err );
+	if(!dnnLayoutCompare_F32(lt_user_input, lt_pool_backward_input))
+	{
+		CHECK_ERR( dnnConversionCreate_F32(&cv_backward_input, lt_pool_backward_input, lt_user_input), err );
+		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_backward_input), lt_pool_backward_input), err );
+	}
 
 
 	//save the dnnPrimitive to THTensor(long int array)
 	primitives->storage->data[POOLING_FORWARD] = (long long)pool1;
 	primitives->storage->data[POOLING_BACKWARD] = (long long)pool_bwd;
-	primitives->storage->data[POOLING_BUF_WORKSPACE] = (long long)workspacePtr;
+	primitives->storage->data[CV_POOLING_FORWARD_INPUT] = (long long)cv_forward_input;
+	primitives->storage->data[CV_POOLING_FORWARD_OUTPUT] = (long long)cv_forward_output;
+	primitives->storage->data[CV_POOLING_BACKWARD_INPUT] = (long long)cv_backward_input;
+	primitives->storage->data[CV_POOLING_BACKWARD_OUTPUT] = (long long)cv_backward_output;
+
+
+	primitives->storage->data[BUFFER_POOLING_FORWARD_INPUT] = (long long)buffer_forward_input;
+	primitives->storage->data[BUFFER_POOLING_FORWARD_OUTPUT] = (long long)buffer_forward_output;
+	primitives->storage->data[BUFFER_POOLING_FORWARD_WORKSPACE] = (long long)buffer_forward_workspace;
+
+
 
 #if LOG_ENABLE
 	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init end.\n" );
@@ -204,19 +219,39 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 
 	if(initOk == 0)
 	{
-		THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(primitives,N,inC,inH,inW,kH,kW,dH,dW,outC,outH,outW);
+		THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
 	}
 
+	dnnPrimitive_t cv_forward_input = NULL,cv_forward_output = NULL;
+	real * buffer_forward_input = NULL;	real * buffer_forward_output = NULL;	real * buffer_forward_workspace = NULL;
 
-	dnnPrimitive_t pool1 = (dnnPrimitive_t) (primitives->storage->data[POOLING_FORWARD]);
-	real * workspacePtr = (real *) (primitives->storage->data[POOLING_BUF_WORKSPACE]);
+
+	dnnPrimitive_t pool1 	= (dnnPrimitive_t) (primitives->storage->data[POOLING_FORWARD]);
+	cv_forward_input 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_FORWARD_INPUT]);
+	cv_forward_output 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_FORWARD_OUTPUT]);
+	buffer_forward_input	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_INPUT]);
+	buffer_forward_output	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_OUTPUT]);
+	buffer_forward_workspace= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_WORKSPACE]);
+
 
 	real * resPool1[dnnResourceNumber] = {0};
 	resPool1[dnnResourceSrc] = input_data;
 	resPool1[dnnResourceDst] = output_data;
-	resPool1[dnnResourceWorkspace] = workspacePtr;
+	resPool1[dnnResourceWorkspace] = buffer_forward_workspace;
+
+/*	if(cv_forward_input)
+	{
+			resPool1[dnnResourceSrc] = buffer_forward_input;
+			CHECK_ERR( dnnConversionExecute_F32(cv_forward_input, input_data, resPool1[dnnResourceSrc]), err );
+	}*/
+	if(cv_forward_output){
+		resPool1[dnnResourceDst] = buffer_forward_output;
+	}
 
 	CHECK_ERR( dnnExecute_F32(pool1, (void*)resPool1), err );
+	if(cv_forward_output){
+		CHECK_ERR( dnnConversionExecute_F32(cv_forward_output, buffer_forward_output, output_data), err );
+	} 
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
