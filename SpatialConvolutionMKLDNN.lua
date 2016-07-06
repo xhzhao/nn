@@ -31,7 +31,7 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
    self.timeBackward = 0
    self.cnt = 0
 
-   print ("mkldnn SpatialConvolutionMM init, compare = ",self.compare, "timerEnable = ",self.timerEnable)
+   --print ("mkldnn SpatialConvolutionMM init, compare = ",self.compare, "timerEnable = ",self.timerEnable)
 
 
    self:reset()
