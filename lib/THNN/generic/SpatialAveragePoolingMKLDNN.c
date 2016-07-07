@@ -20,7 +20,7 @@ static void THNN_(SpatialAveragePooling_MKLDNN_init)(
           int outH,
           int outW)
 {
-#if 1 //LOG_ENABLE
+#if LOG_ENABLE
 	fprintf(stderr,"	SpatialAveragePooling_MKLDNN_init start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,dH=%d,dW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,dH,dW,outC,outH,outW );
 #endif
 	dnnError_t err;

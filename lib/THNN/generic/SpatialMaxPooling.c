@@ -20,7 +20,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(
           int outH,
           int outW)
 {
-#if 1//LOG_ENABLE
+#if LOG_ENABLE
 	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,dH=%d,dW=%d,padH=%d,padW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW );
 #endif
 	dnnError_t err;
