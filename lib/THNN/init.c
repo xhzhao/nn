@@ -136,6 +136,9 @@
 #include "generic/SpatialAveragePooling.c"
 #include "THGenerateFloatTypes.h"
 
+#include "generic/SpatialAveragePoolingMKLDNN.c"
+#include "THGenerateFloatTypes.h"
+
 #include "generic/SpatialFractionalMaxPooling.c"
 #include "THGenerateFloatTypes.h"
 

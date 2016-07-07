@@ -173,6 +173,7 @@ require('nn.test')
 
 require('nn.SpatialConvolutionMKLDNN')
 require('nn.SpatialMaxPoolingMKLDNN')
+require('nn.SpatialAveragePoolingMKLDNN')
 require('nn.ThresholdMKLDNN')
 require('nn.ReLUMKLDNN')
 

@@ -113,6 +113,37 @@ TH_API void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
           bool ceil_mode,
           THLongTensor *primitives);
 
+
+/*AveragePooling*/
+TH_API void THNN_(SpatialAveragePooling_MKLDNN_updateOutput)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *output,
+          int kW,
+          int kH,
+          int dW,
+          int dH,
+          int padW,
+          int padH,
+          bool ceil_mode,
+          bool count_include_pad,
+          THLongTensor *primitives,
+          int initOk);
+TH_API void THNN_(SpatialAveragePooling_MKLDNN_updateGradInput)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *gradOutput,
+          THTensor *gradInput,
+          int kW,
+          int kH,
+          int dW,
+          int dH,
+          int padW,
+          int padH,
+          bool ceil_mode,
+          bool count_include_pad,
+          THLongTensor *primitives);
+
 ////////////////////////////////////////////////////////////////////////////xhzhao add end.
 
 
