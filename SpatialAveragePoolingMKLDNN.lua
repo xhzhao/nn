@@ -1,18 +1,17 @@
-local SpatialMaxPooling, parent = torch.class('nn.SpatialMaxPoolingMKLDNN', 'nn.Module')
+local SpatialAveragePooling, parent = torch.class('nn.SpatialAveragePoolingMKLDNN', 'nn.Module')
 
-function SpatialMaxPooling:__init(kW, kH, dW, dH, padW, padH)
+function SpatialAveragePooling:__init(kW, kH, dW, dH, padW, padH)
    parent.__init(self)
 
-   dW = dW or kW
-   dH = dH or kH
-   
    self.kW = kW
    self.kH = kH
-   self.dW = dW
-   self.dH = dH
-
+   self.dW = dW or 1
+   self.dH = dH or 1
    self.padW = padW or 0
    self.padH = padH or 0
+   self.ceil_mode = false
+   self.count_include_pad = true
+   self.divide = true
 
    self.dnnPrimitives = torch.LongTensor(12)
    self.mkldnnInitOk = 0
@@ -22,148 +21,159 @@ function SpatialMaxPooling:__init(kW, kH, dW, dH, padW, padH)
    self.timeBackward = 0
    self.cnt = 0
 
+end
 
+function SpatialAveragePooling:ceil()
+   self.ceil_mode = true
+   return self
+end
+
+function SpatialAveragePooling:floor()
    self.ceil_mode = false
-   self.indices = torch.Tensor()
+   return self
 end
 
-function SpatialMaxPooling:ceil()
-  self.ceil_mode = true
-  return self
+function SpatialAveragePooling:setCountIncludePad()
+   self.count_include_pad = true
+   return self
 end
 
-function SpatialMaxPooling:floor()
-  self.ceil_mode = false
-  return self
+function SpatialAveragePooling:setCountExcludePad()
+   self.count_include_pad = false
+   return self
 end
 
-function SpatialMaxPooling:updateOutput(input)
-   if self.timerEnable then
-	sys.tic()
+local function backwardCompatible(self)
+   if self.ceil_mode == nil then
+      self.ceil_mode = false
+      self.count_include_pad = true
+      self.padH = 0
+      self.padW = 0
    end
-   self.indices = self.indices or input.new()
-   -- backward compatibility
-   self.ceil_mode = self.ceil_mode or false
-   self.padW = self.padW or 0
-   self.padH = self.padH or 0
+end
 
+function SpatialAveragePooling:updateOutput(input)
+   backwardCompatible(self)
    if self.compare  then
-	   input.THNN.SpatialMaxPooling_updateOutput(
+	   input.THNN.SpatialAveragePooling_updateOutput(
 	      input:cdata(),
 	      self.output:cdata(),
-	      self.indices:cdata(),
-	      self.kW, self.kH,
-	      self.dW, self.dH,
-	      self.padW, self.padH,
-	      self.ceil_mode
-	   )
-	   tmpOut = torch.Tensor(self.output:size())
-	   input.THNN.SpatialMaxPooling_MKLDNN_updateOutput(
-	      input:cdata(),
-	      tmpOut:cdata(),
-	      self.indices:cdata(),
-	      self.kW, self.kH,
-	      self.dW, self.dH,
-	      self.padW, self.padH,
-	       self.ceil_mode,
-	      self.dnnPrimitives:cdata(),
-	      self.mkldnnInitOk
-	   )
-	   outSize = tonumber(tmpOut:cdata().size[0]*tmpOut:cdata().size[1]*tmpOut:cdata().size[2]*tmpOut:cdata().size[3])
-	   input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.output:cdata(), outSize,4)
-   else
-	   input.THNN.SpatialMaxPooling_MKLDNN_updateOutput(
-	      input:cdata(),
-	      self.output:cdata(),
-	      self.indices:cdata(),
-	      self.kW, self.kH,
-	      self.dW, self.dH,
-	      self.padW, self.padH,
-	       self.ceil_mode,
-	      self.dnnPrimitives:cdata(),
-	      self.mkldnnInitOk
-	   )
-   end
-   self.mkldnnInitOk = 1
-   if self.timerEnable then
-	if self.cnt >= 10 then 
-		print("mkldnn SpatialMaxPooling forward time = ,",self.timeForward/self.cnt," backward time =",self.timeBackward/self.cnt)
-	end
-	self.timeForward = self.timeForward + sys.toc()
-	self.cnt = self.cnt + 1
-   end
-   return self.output
-end
-
-function SpatialMaxPooling:updateGradInput(input, gradOutput)
-   if self.timerEnable then
-	sys.tic()
-   end
-   if self.compare  then
-
-	input.THNN.SpatialMaxPooling_updateGradInput(
-	      input:cdata(),
-	      gradOutput:cdata(),
-	      self.gradInput:cdata(),
-	      self.indices:cdata(),
-	      self.kW, self.kH,
-	      self.dW, self.dH,
-	      self.padW, self.padH,
-	      self.ceil_mode
-	   )
-	outSize = tonumber(self.gradInput:cdata().size[0] *self.gradInput:cdata().size[1] *self.gradInput:cdata().size[2] *self.gradInput:cdata().size[3])
-	tmpOut = torch.Tensor(outSize)
-	input.THNN.SpatialMaxPooling_MKLDNN_updateGradInput(
-	      input:cdata(),
-	      gradOutput:cdata(),
-	      tmpOut:cdata(),
-	      self.indices:cdata(),
 	      self.kW, self.kH,
 	      self.dW, self.dH,
 	      self.padW, self.padH,
 	      self.ceil_mode,
-	      self.dnnPrimitives:cdata()
+	      self.count_include_pad
 	   )
-	      input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,5)
-
-   else
-
-	   input.THNN.SpatialMaxPooling_updateGradInput(
+	   tmpOut = torch.Tensor(self.output:size())
+	   input.THNN.SpatialAveragePooling_MKLDNN_updateOutput(
 	      input:cdata(),
-	      gradOutput:cdata(),
-	      self.gradInput:cdata(),
-	      self.indices:cdata(),
+	      tmpOut:cdata(),
 	      self.kW, self.kH,
 	      self.dW, self.dH,
 	      self.padW, self.padH,
-	      self.ceil_mode
+	      self.ceil_mode,
+	      self.count_include_pad,
+	      self.dnnPrimitives:cdata(),
+	      self.mkldnnInitOk
 	   )
+	   outSize = tonumber(tmpOut:cdata().size[0]*tmpOut:cdata().size[1]*tmpOut:cdata().size[2]*tmpOut:cdata().size[3])
+	   input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.output:cdata(), outSize,8)
+   else
+
+	   input.THNN.SpatialAveragePooling_MKLDNN_updateOutput(
+	      input:cdata(),
+	      self.output:cdata(),
+	      self.kW, self.kH,
+	      self.dW, self.dH,
+	      self.padW, self.padH,
+	      self.ceil_mode,
+	      self.count_include_pad,
+	      self.dnnPrimitives:cdata(),
+	      self.mkldnnInitOk
+	   )
+
    end
-   if self.timerEnable then
-	self.timeBackward = self.timeBackward + sys.toc()
+   -- for backward compatibility with saved models
+   -- which are not supposed to have "divide" field
+   if not self.divide then
+     self.output:mul(self.kW*self.kH)
    end
-   return self.gradInput
+   return self.output
 end
 
--- for backward compat
-function SpatialMaxPooling:empty()
-   self:clearState()
+function SpatialAveragePooling:updateGradInput(input, gradOutput)
+   if self.gradInput then
+
+
+   if self.compare  then
+      input.THNN.SpatialAveragePooling_updateGradInput(
+         input:cdata(),
+         gradOutput:cdata(),
+         self.gradInput:cdata(),
+         self.kW, self.kH,
+         self.dW, self.dH,
+         self.padW, self.padH,
+         self.ceil_mode,
+         self.count_include_pad
+      )
+
+	outSize = tonumber(self.gradInput:cdata().size[0] *self.gradInput:cdata().size[1] *self.gradInput:cdata().size[2] *self.gradInput:cdata().size[3])
+	tmpOut = torch.Tensor(outSize)
+	input.THNN.SpatialAveragePooling_MKLDNN_updateGradInput(
+         input:cdata(),
+         gradOutput:cdata(),
+         tmpOut:cdata(),
+         self.kW, self.kH,
+         self.dW, self.dH,
+         self.padW, self.padH,
+         self.ceil_mode,
+         self.count_include_pad,
+	 self.dnnPrimitives:cdata()
+	   )
+	 input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,9)
+
+
+   else
+
+      input.THNN.SpatialAveragePooling_updateGradInput(
+         input:cdata(),
+         gradOutput:cdata(),
+         self.gradInput:cdata(),
+         self.kW, self.kH,
+         self.dW, self.dH,
+         self.padW, self.padH,
+         self.ceil_mode,
+         self.count_include_pad
+      )
+--[[
+      input.THNN.SpatialAveragePooling_MKLDNN_updateGradInput(
+         input:cdata(),
+         gradOutput:cdata(),
+         self.gradInput:cdata(),
+         self.kW, self.kH,
+         self.dW, self.dH,
+         self.padW, self.padH,
+         self.ceil_mode,
+         self.count_include_pad,
+         self.dnnPrimitives:cdata()l
+      )
+]]--
+   end
+
+      -- for backward compatibility
+      if not self.divide then
+         self.gradInput:mul(self.kW*self.kH)
+      end
+      return self.gradInput
+   end
 end
 
-function SpatialMaxPooling:__tostring__()
-   local s =  string.format('%s(%d,%d,%d,%d', torch.type(self),
+function SpatialAveragePooling:__tostring__()
+   local s = string.format('%s(%d,%d,%d,%d', torch.type(self),
                             self.kW, self.kH, self.dW, self.dH)
    if (self.padW or self.padH) and (self.padW ~= 0 or self.padH ~= 0) then
       s = s .. ',' .. self.padW .. ','.. self.padH
    end
    s = s .. ')'
-
-   return s
-end
-
-function SpatialMaxPooling:clearState()
-   if self.indices then
-      self.indices:set()
-   end
-   return parent.clearState(self)
+   return s 
 end
