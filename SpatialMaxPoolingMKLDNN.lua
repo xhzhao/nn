@@ -99,16 +99,46 @@ function SpatialMaxPooling:updateGradInput(input, gradOutput)
    if self.timerEnable then
 	sys.tic()
    end
-   input.THNN.SpatialMaxPooling_updateGradInput(
-      input:cdata(),
-      gradOutput:cdata(),
-      self.gradInput:cdata(),
-      self.indices:cdata(),
-      self.kW, self.kH,
-      self.dW, self.dH,
-      self.padW, self.padH,
-      self.ceil_mode
-   )
+   if self.compare  then
+
+	input.THNN.SpatialMaxPooling_updateGradInput(
+	      input:cdata(),
+	      gradOutput:cdata(),
+	      self.gradInput:cdata(),
+	      self.indices:cdata(),
+	      self.kW, self.kH,
+	      self.dW, self.dH,
+	      self.padW, self.padH,
+	      self.ceil_mode
+	   )
+	outSize = tonumber(self.gradInput:cdata().size[0] *self.gradInput:cdata().size[1] *self.gradInput:cdata().size[2] *self.gradInput:cdata().size[3])
+	tmpOut = torch.Tensor(outSize)
+	input.THNN.SpatialMaxPooling_MKLDNN_updateGradInput(
+	      input:cdata(),
+	      gradOutput:cdata(),
+	      tmpOut:cdata(),
+	      self.indices:cdata(),
+	      self.kW, self.kH,
+	      self.dW, self.dH,
+	      self.padW, self.padH,
+	      self.ceil_mode,
+	      self.dnnPrimitives:cdata()
+	   )
+	      input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,5)
+
+   else
+
+	   input.THNN.SpatialMaxPooling_updateGradInput(
+	      input:cdata(),
+	      gradOutput:cdata(),
+	      self.gradInput:cdata(),
+	      self.indices:cdata(),
+	      self.kW, self.kH,
+	      self.dW, self.dH,
+	      self.padW, self.padH,
+	      self.ceil_mode
+	   )
+   end
    if self.timerEnable then
 	self.timeBackward = self.timeBackward + sys.toc()
    end
