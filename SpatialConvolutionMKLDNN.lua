@@ -153,6 +153,7 @@ function SpatialConvolutionMM:updateOutput(input)
 		sys.convTime = sys.convTime + (self.timeForward + self.timeBackward1+ self.timeBackward2)
 	self.timeForward = (sys.clock() - startTime)
 	self.cnt = self.cnt + 1
+	end
    end
    return self.output
 end
