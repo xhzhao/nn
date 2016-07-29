@@ -88,11 +88,10 @@ function SpatialMaxPooling:updateOutput(input)
    end
    self.mkldnnInitOk = 1
    if self.timerEnable then
-	if self.cnt >= 10 then 
-		print("mkldnn SpatialMaxPooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
-	end
-	self.timeForward = sys.clock() - startTime
-	self.cnt = self.cnt + 1
+        print("mkldnn SpatialMaxPooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
+        sys.maxpoolingTime = sys.maxpoolingTime + self.timeForward + self.timeBackward
+        self.timeForward = sys.clock() - startTime
+        self.cnt = self.cnt + 1
    end
    return self.output
 end

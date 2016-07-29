@@ -148,12 +148,10 @@ function SpatialConvolutionMM:updateOutput(input)
    end
    self.mkldnnInitOk = 1
    if self.timerEnable then
-	if self.cnt >= 10 then 
-		print("mkldnn conv forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
-		sys.convTime = sys.convTime + (self.timeForward + self.timeBackward1+ self.timeBackward2)
-	self.timeForward = (sys.clock() - startTime)
-	self.cnt = self.cnt + 1
-	end
+        print("mkldnn conv forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
+        sys.convTime = sys.convTime + (self.timeForward + self.timeBackward1+ self.timeBackward2)
+        self.timeForward = (sys.clock() - startTime)
+        self.cnt = self.cnt + 1
    end
    return self.output
 end
