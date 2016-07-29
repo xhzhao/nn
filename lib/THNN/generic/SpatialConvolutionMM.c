@@ -341,7 +341,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
           int padW,
           int padH)
 {
-	struct timeval start,end;
+	struct timeval start,mid,convert1,convert2,end;
 	gettimeofday(&start,NULL);
 	dnnError_t err;
 	dnnPrimitive_t m_conv_forward = NULL;
@@ -377,6 +377,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	THTensor_(resize4d)(output, N, outC, outH, outW);
 	//return;
 #if LOG_ENABLE
+	gettimeofday(&mid,NULL);
 	fprintf(stderr, "SpatialConvolutionMM_MKLDNN_forward: start, m_conv_forward = 0x%x \n",m_conv_forward);
 	fprintf(stderr, "	input->size[0]=%d,input->size[1]=%d,input->size[2]=%d,input->size[3]=%d \n", input->size[0],input->size[1],input->size[2],input->size[3]);	
 	fprintf(stderr, "	output->size[0]=%d,output->size[1]=%d,output->size[2]=%d,output->size[3]=%d \n", output->size[0],output->size[1],output->size[2],output->size[3]);
@@ -398,30 +399,43 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	resConv[dnnResourceFilter] 	= filterPtr;
 	resConv[dnnResourceBias] 	= biasPtr;
 	resConv[dnnResourceDst] 	= outPtr;
+
+	void *convert_resources[dnnResourceNumber];
+
 	if(sizeof(real) == sizeof(float))
 	{
 		if(cv_forward_input){
 			resConv[dnnResourceSrc] = buffer_forward_input;
-			CHECK_ERR( dnnConversionExecute_F32(cv_forward_input, inPtr, resConv[dnnResourceSrc]), err );
+			convert_resources[dnnResourceFrom] = inPtr;
+			convert_resources[dnnResourceTo]   = buffer_forward_input;
+			CHECK_ERR( dnnExecute_F32(cv_forward_input, convert_resources), err );
 		}
 		
 		if(cv_forward_filter){
 			resConv[dnnResourceFilter] = buffer_forward_filter;
-			CHECK_ERR( dnnConversionExecute_F32(cv_forward_filter, filterPtr, resConv[dnnResourceFilter]), err );
+			convert_resources[dnnResourceFrom] = filterPtr;
+			convert_resources[dnnResourceTo]   = buffer_forward_filter;
+			CHECK_ERR( dnnExecute_F32(cv_forward_filter, convert_resources), err );
 		} 
 		
 		if(cv_forward_bias){
 			resConv[dnnResourceBias] = buffer_forward_bias;
-			CHECK_ERR( dnnConversionExecute_F32(cv_forward_bias, biasPtr, resConv[dnnResourceBias]), err );
+			convert_resources[dnnResourceFrom] = biasPtr;
+			convert_resources[dnnResourceTo]   = buffer_forward_bias;
+			CHECK_ERR( dnnExecute_F32(cv_forward_bias,convert_resources), err );
 		} 
 
 		if(cv_forward_output){
 			resConv[dnnResourceDst] = buffer_forward_output;
 		} 
+		gettimeofday(&convert1,NULL);
 
 		CHECK_ERR(dnnExecute_F32(m_conv_forward, (void**)resConv),err);	
+		gettimeofday(&convert2,NULL);
 		if(cv_forward_output){
-			CHECK_ERR( dnnConversionExecute_F32(cv_forward_output, buffer_forward_output, outPtr), err );
+			convert_resources[dnnResourceFrom] = buffer_forward_output;
+			convert_resources[dnnResourceTo]   = outPtr;
+			CHECK_ERR( dnnExecute_F32(cv_forward_output, convert_resources), err );
 		} 
 		//fprintf(stderr, "		call float api:dnnExecute_F32 end, out[0]=%.2f \n",outPtr[0]);
 	}
@@ -432,8 +446,13 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	}
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);
-	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
-	fprintf(stderr,"	forward MKLDNN time = %.2f ms\n",duration );
+	double duration1 = (mid.tv_sec - start.tv_sec) * 1000 + (double)(mid.tv_usec - start.tv_usec) /1000;
+	double duration2 = (end.tv_sec - mid.tv_sec) * 1000 + (double)(end.tv_usec - mid.tv_usec) /1000;
+	fprintf(stderr,"	forward MKLDNN time1 = %.2f ms, time2 = %.2f\nms",duration1,duration2);
+	double convert_time1 = (convert1.tv_sec - mid.tv_sec) * 1000 + (double)(convert1.tv_usec - mid.tv_usec) /1000;
+	double exec_time = (convert2.tv_sec - convert1.tv_sec) * 1000 + (double)(convert2.tv_usec - convert1.tv_usec) /1000;
+	double convert_time2 = (end.tv_sec - convert2.tv_sec) * 1000 + (double)(end.tv_usec - convert2.tv_usec) /1000;
+	fprintf(stderr,"	forward MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2f\nms",convert_time1,exec_time,convert_time2);
 #endif
 }
 
@@ -455,7 +474,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
           int padW,
           int padH)
 {
-	struct timeval start,end;
+	struct timeval start,mid1,mid2,mid3,convert1,convert2,end;
 	gettimeofday(&start,NULL);
 	dnnError_t err;
 	dnnPrimitive_t m_conv_bwdData =NULL; 
@@ -464,6 +483,8 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	real * buffer_bwddata_input = NULL;real * buffer_bwddata_filter = NULL;real * buffer_bwddata_output=NULL;
 
 	THTensor_(transpose)(weight, weight, 0, 1);
+
+	gettimeofday(&mid1,NULL);
 
 	m_conv_bwdData = (dnnPrimitive_t) (primitives->storage->data[BWD_DATA_INDEX]);
 	cv_bwddata_input 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_BWDDATA_INPUT];
@@ -475,14 +496,19 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 
 
 
+
+	THTensor_(resizeAs)(gradInput, input);
+	gettimeofday(&mid2,NULL);
+	THTensor_(zero)(gradInput);
+
+
 #if LOG_ENABLE
+	gettimeofday(&mid3,NULL);
 	fprintf(stderr, "SpatialConvolutionMM_MKLDNN_bwdData: start. \n");
 	fprintf(stderr, "	input->size[0]=%d,input->size[1]=%d,input->size[2]=%d,input->size[3]=%d \n", input->size[0],input->size[1],input->size[2],input->size[3]);	
 	fprintf(stderr, "	output->size[0]=%d,output->size[1]=%d,output->size[2]=%d,output->size[3]=%d \n", gradOutput->size[0],gradOutput->size[1],gradOutput->size[2],gradOutput->size[3]);
 	fprintf(stderr, "	weight->size[0]=%d,weight->size[1]=%d\n", weight->size[0],weight->size[1]);
 #endif
-	THTensor_(resizeAs)(gradInput, input);
-	THTensor_(zero)(gradInput);
 
 	real * inPtr = THTensor_(data)(gradInput);
 	real * filterPtr = THTensor_(data)(weight);
@@ -493,18 +519,22 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	resConv[dnnResourceFilter] = filterPtr;
 	resConv[dnnResourceDiffDst] = outPtr;
 
-
+	void *convert_resources[dnnResourceNumber];
 	if(sizeof(real) == sizeof(float))
 	{
 		if(cv_bwddata_output){
 			resConv[dnnResourceDiffDst] = buffer_bwddata_output;
-			CHECK_ERR( dnnConversionExecute_F32(cv_bwddata_output, outPtr, resConv[dnnResourceDiffDst]), err );
+			convert_resources[dnnResourceFrom] = outPtr;
+			convert_resources[dnnResourceTo]   = buffer_bwddata_output;
+			CHECK_ERR( dnnExecute_F32(cv_bwddata_output,convert_resources), err );
 			//fprintf(stderr, "		convert 1 called. \n");
 		}
 		
 		if(cv_bwddata_filter){
 			resConv[dnnResourceFilter] = buffer_bwddata_filter;
-			CHECK_ERR( dnnConversionExecute_F32(cv_bwddata_filter, filterPtr, resConv[dnnResourceFilter]), err );
+			convert_resources[dnnResourceFrom] = filterPtr;
+			convert_resources[dnnResourceTo]   = buffer_bwddata_filter;
+			CHECK_ERR( dnnExecute_F32(cv_bwddata_filter, convert_resources), err );
 			//fprintf(stderr, "		convert 2 called. \n");
 		}
 
@@ -513,11 +543,14 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 		}
 
 		
-
+		gettimeofday(&convert1,NULL);
 		CHECK_ERR(dnnExecute_F32(m_conv_bwdData, (void**)resConv),err);	
+		gettimeofday(&convert2,NULL);
 
 		if(cv_bwddata_input){
-			CHECK_ERR( dnnConversionExecute_F32(cv_bwddata_input, buffer_bwddata_input, inPtr), err );
+			convert_resources[dnnResourceFrom] = buffer_bwddata_input;
+			convert_resources[dnnResourceTo]   = inPtr;
+			CHECK_ERR( dnnExecute_F32(cv_bwddata_input, convert_resources), err );
 			//fprintf(stderr, "		convert 3 called. \n");
 		}
 
@@ -527,9 +560,25 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 		CHECK_ERR(dnnExecute_F64(m_conv_bwdData, (void**)resConv),err);
 	}
 	gettimeofday(&end,NULL);
-	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+
+
 #if LOG_ENABLE
-	fprintf(stderr,"	bwdData MKLDNN time = %.2f ms\n",duration );
+	double time1 = (mid1.tv_sec - start.tv_sec) * 1000 + (double)(mid1.tv_usec - start.tv_usec) /1000;
+	double time2 = (mid2.tv_sec - mid1.tv_sec) * 1000 + (double)(mid2.tv_usec - mid1.tv_usec) /1000;
+	double time3 = (mid3.tv_sec - mid2.tv_sec) * 1000 + (double)(mid3.tv_usec - mid2.tv_usec) /1000;
+	fprintf(stderr,"	bwdData MKLDNN mid1 = %.2f ms, mid2 = %.2f ms, mid3 = %.2f\n",time1,time2,time3) ;
+
+	double duration1 = (mid3.tv_sec - start.tv_sec) * 1000 + (double)(mid3.tv_usec - start.tv_usec) /1000;
+	double duration2 = (end.tv_sec - mid3.tv_sec) * 1000 + (double)(end.tv_usec - mid3.tv_usec) /1000;
+
+	fprintf(stderr,"	bwdData MKLDNN time1 = %.2f ms, time2 = %.2f ms\n",duration1,duration2 );
+
+        double convert_time1 = (convert1.tv_sec - mid3.tv_sec) * 1000 + (double)(convert1.tv_usec - mid3.tv_usec) /1000;
+        double exec_time = (convert2.tv_sec - convert1.tv_sec) * 1000 + (double)(convert2.tv_usec - convert1.tv_usec) /1000;
+        double convert_time2 = (end.tv_sec - convert2.tv_sec) * 1000 + (double)(end.tv_usec - convert2.tv_usec) /1000;
+        fprintf(stderr,"        bwddata MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2f\nms",convert_time1,exec_time,convert_time2);
+
+
 #endif
 	THTensor_(transpose)(weight, weight, 0, 1);
 }
@@ -554,7 +603,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
           real scale)
 {
 
-	struct timeval start,end;
+	struct timeval start,mid,convert1,convert2,end;
 	gettimeofday(&start,NULL);
 	dnnError_t err;
 	dnnPrimitive_t m_conv_bwdFilter =NULL; 
@@ -591,7 +640,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
 	resConv[dnnResourceDiffFilter] = filterPtr;
 	resConv[dnnResourceDiffDst] = outPtr;
 	resConv[dnnResourceDiffBias] = biasPtr;
-
+	void *convert_resources[dnnResourceNumber];
 
 	//fprintf(stderr, "	m_conv = 0x%x, inPtr=0x%x, filterPtr=0x%x, outPtr=0x%x\n", m_conv_bwdFilter,inPtr,filterPtr,outPtr);
 
@@ -602,19 +651,29 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
 
 		if(cv_bwdfilter_input){
 			resConv[dnnResourceSrc] = buffer_bwdfilter_input;
-			CHECK_ERR( dnnConversionExecute_F32(cv_bwdfilter_input, inPtr, resConv[dnnResourceSrc]), err );
+			convert_resources[dnnResourceFrom] = inPtr;
+			convert_resources[dnnResourceTo]   = buffer_bwdfilter_input;
+			CHECK_ERR( dnnExecute_F32(cv_bwdfilter_input, convert_resources), err );
 		}
 		if(cv_bwdfilter_output){
 			resConv[dnnResourceDiffDst] = buffer_bwdfilter_output;
-			CHECK_ERR( dnnConversionExecute_F32(cv_bwdfilter_output, outPtr, resConv[dnnResourceDiffDst]), err );
+			convert_resources[dnnResourceFrom] = outPtr;
+			convert_resources[dnnResourceTo]   = buffer_bwdfilter_output;
+			CHECK_ERR( dnnExecute_F32(cv_bwdfilter_output, convert_resources), err );
 		}
 		if(cv_bwdfilter_filter){
 			resConv[dnnResourceDiffFilter] = buffer_bwdfilter_filter;
 		}
 
+
+		gettimeofday(&convert1,NULL);
 		CHECK_ERR(dnnExecute_F32(m_conv_bwdFilter, (void**)resConv),err);
+		gettimeofday(&convert2,NULL);
+	
 		if(cv_bwdfilter_filter){
-			CHECK_ERR( dnnConversionExecute_F32(cv_bwdfilter_filter, buffer_bwdfilter_filter, filterPtr), err );
+			convert_resources[dnnResourceFrom] = buffer_bwdfilter_filter;
+			convert_resources[dnnResourceTo]   = filterPtr;
+			CHECK_ERR( dnnExecute_F32(cv_bwdfilter_filter, convert_resources), err );
 		}
 		//fprintf(stderr, "		call float api:dnnExecute_F32 end, out[0]=%.2f \n",outPtr[0]);
 	}
@@ -627,6 +686,13 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
 	fprintf(stderr,"	bwdFilter MKLDNN time = %.2f ms\n",duration );
+
+        double convert_time1 = (convert1.tv_sec - start.tv_sec) * 1000 + (double)(convert1.tv_usec - start.tv_usec) /1000;
+        double exec_time = (convert2.tv_sec - convert1.tv_sec) * 1000 + (double)(convert2.tv_usec - convert1.tv_usec) /1000;
+        double convert_time2 = (end.tv_sec - convert2.tv_sec) * 1000 + (double)(end.tv_usec - convert2.tv_usec) /1000;
+        fprintf(stderr,"        bwdfilter MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2f\nms",convert_time1,exec_time,convert_time2);
+#
+
 #endif
 }
 
