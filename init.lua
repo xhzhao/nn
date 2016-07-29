@@ -176,6 +176,8 @@ require('nn.SpatialMaxPoolingMKLDNN')
 require('nn.SpatialAveragePoolingMKLDNN')
 require('nn.ThresholdMKLDNN')
 require('nn.ReLUMKLDNN')
+require('nn.BatchNormalizationMKLDNN')
+require('nn.SpatialBatchNormalizationMKLDNN')
 
 
 return nn

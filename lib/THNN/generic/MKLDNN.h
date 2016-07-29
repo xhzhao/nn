@@ -497,12 +497,7 @@ dnnError_t dnnInnerProductCreateBackwardBias_F64(
 #define BUFFER_BWDFILTER_OUTPUT 	22
 
 
-//#define POOLING_FORWARD			0
-//#define POOLING_BACKWARD		1
-//#define POOLING_CONVERT_OUTPUT	2
-//#define POOLING_BUF_CONVERT_OUTPUT	3
-#define POOLING_BUF_WORKSPACE		3
-#define POOLING_BUF_DIFFSRC		4
+
 
 typedef enum {
     POOLING_FORWARD            		= 0,
@@ -520,13 +515,28 @@ typedef enum {
 } mkldnnPoolingIndex_t;
 
 
-#define RELU_FORWARD			0
-#define RELU_BACKWARD			1
+typedef enum {
+    RELU_FORWARD            		= 0,
+    RELU_BACKWARD           		= 1
+} mkldnnReLUIndex_t;
+
+typedef enum {
+    BN_FORWARD            		= 0,
+    BN_BACKWARD           		= 1,
+    BN_SCALESHIFT           		= 2,
+    BUFFER_BN_FORWARD_WORKSPACE       	= 3,
+    BUFFER_BN_FORWARD_SCALESHIFT      	= 4,
+    BUFFER_BN_BACKWARD_WORKSPACE       	= 5,
+    BUFFER_BN_BACKWARD_SCALESHIFT      	= 6
+} mkldnnBNIndex_t;
+
 
 /*compare source define:
 Convolution:1(forward),2(bwd data),3(bwd filter)
 MaxPooling:4(forward),5(backward)
 ReLU:6(forward),7(backward)
+AvgPooling:8(forward),9(backward)
+BatchNormalization:10(forward),11(backward)
 */
 
 #define CHECK_ERR(f, err) do { \

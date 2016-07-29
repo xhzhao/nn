@@ -144,6 +144,25 @@ TH_API void THNN_(SpatialAveragePooling_MKLDNN_updateGradInput)(
           bool count_include_pad,
           THLongTensor *primitives);
 
+
+TH_API void THNN_(BatchNormalization_MKLDNN_updateOutput)(
+  THNNState *state, THTensor *input, THTensor *output,
+  THTensor *weight, THTensor *bias,
+  THTensor *running_mean, THTensor *running_var,
+  THTensor *save_mean, THTensor *save_std,
+  bool train, double momentum, double eps,
+  THLongTensor *primitives,int initOk);
+
+TH_API void THNN_(BatchNormalization_MKLDNN_backward)(
+  THNNState *state, THTensor *input, THTensor *gradOutput, THTensor *gradInput,
+  THTensor *gradWeight, THTensor *gradBias, THTensor *weight,
+  THTensor *running_mean, THTensor *running_var,
+  THTensor *save_mean, THTensor *save_std,
+  bool train, double scale, double eps,
+  THLongTensor *primitives);
+
+
+
 ////////////////////////////////////////////////////////////////////////////xhzhao add end.
 
 
