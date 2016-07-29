@@ -98,7 +98,7 @@ end
 
 function SpatialMaxPooling:updateGradInput(input, gradOutput)
    if self.timerEnable then
-	sys.tic()
+	startTime = sys.clock()
    end
    if self.compare  then
 
