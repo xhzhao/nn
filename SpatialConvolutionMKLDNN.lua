@@ -27,7 +27,8 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
    self.timeForward = 0
-   self.timeBackward = 0
+   self.timeBackward1 = 0
+   self.timeBackward2 = 0
    self.cnt = 0
 
    --print ("mkldnn SpatialConvolutionMM init, compare = ",self.compare, "timerEnable = ",self.timerEnable)
@@ -81,7 +82,7 @@ function SpatialConvolutionMM:updateOutput(input)
       self.dnnPrimitives = torch.LongTensor(24)
    end
    if self.timerEnable then
-	sys.tic()
+	startTime = sys.clock()
    end
    self.finput = self.finput or input.new()
    self.fgradInput = self.fgradInput or input.new()
@@ -148,9 +149,9 @@ function SpatialConvolutionMM:updateOutput(input)
    self.mkldnnInitOk = 1
    if self.timerEnable then
 	if self.cnt >= 10 then 
-		print("mkldnn conv forward time = ,",self.timeForward/self.cnt," backward time =",self.timeBackward/self.cnt)
-	end
-	self.timeForward = self.timeForward + sys.toc()
+		print("mkldnn conv forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
+		sys.convTime = sys.convTime + (self.timeForward + self.timeBackward1+ self.timeBackward2)
+	self.timeForward = (sys.clock() - startTime)
 	self.cnt = self.cnt + 1
    end
    return self.output
@@ -158,10 +159,10 @@ end
 
 function SpatialConvolutionMM:updateGradInput(input, gradOutput)
    --print "SpatialConvolutionMM:updateGradInput more log"
-   if self.timerEnable then
-	sys.tic()
-   end
+
    if self.gradInput then
+
+	   startTime = sys.clock()
       input, gradOutput = makeContiguous(self, input, gradOutput)
 
 	   if self.compare  then
@@ -211,7 +212,7 @@ function SpatialConvolutionMM:updateGradInput(input, gradOutput)
 			      )
 	   end
    if self.timerEnable then
-	self.timeBackward = self.timeBackward + sys.toc()
+	self.timeBackward1 = (sys.clock() - startTime)
    end
    return self.gradInput
    end
@@ -219,9 +220,7 @@ end
 
 function SpatialConvolutionMM:accGradParameters(input, gradOutput, scale)
    --print "SpatialConvolutionMM:accGradParameters"
-   if self.timerEnable then
-	sys.tic()
-   end
+   startTime = sys.clock()
    scale = scale or 1
    input, gradOutput = makeContiguous(self, input, gradOutput)
    if self.compare  then
@@ -270,7 +269,7 @@ function SpatialConvolutionMM:accGradParameters(input, gradOutput, scale)
 		   )
    end
    if self.timerEnable then
-	self.timeBackward = self.timeBackward + sys.toc()
+	self.timeBackward2 =  (sys.clock() - startTime)
    end
 end
 

@@ -27,7 +27,7 @@ function Threshold:updateOutput(input)
       self.dnnPrimitives = torch.LongTensor(3)
    end
    if self.timerEnable then
-	sys.tic()
+	startTime = sys.clock()
    end
    self:validateParameters()
    if self.compare  then
@@ -65,9 +65,9 @@ function Threshold:updateOutput(input)
    self.mkldnnInitOk = 1
    if self.timerEnable then
 	if self.cnt >= 10 then 
-		print("mkldnn Threshold forward time = ,",self.timeForward/self.cnt," backward time =",self.timeBackward/self.cnt)
+		print("mkldnn Threshold forward time = ,",self.timeForward," backward time =",self.timeBackward)
 	end
-	self.timeForward = self.timeForward + sys.toc()
+	self.timeForward = sys.clock() - startTime
 	self.cnt = self.cnt + 1
    end
    return self.output
@@ -75,7 +75,7 @@ end
 
 function Threshold:updateGradInput(input, gradOutput)
    if self.timerEnable then
-	sys.tic()
+	startTime = sys.clock()
    end
    self:validateParameters()
    if self.compare then
@@ -109,7 +109,7 @@ function Threshold:updateGradInput(input, gradOutput)
 	   )
    end
    if self.timerEnable then
-	self.timeBackward = self.timeBackward + sys.toc()
+	self.timeBackward = sys.clock() - startTime
    end
    return self.gradInput
 end

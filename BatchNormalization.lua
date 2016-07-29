@@ -53,6 +53,12 @@ function BN:__init(nOutput, eps, momentum, affine)
    self.running_mean = torch.zeros(nOutput)
    self.running_var = torch.ones(nOutput)
 
+   self.timerEnable = sys.timerEnable
+   self.timeForward = 0
+   self.timeBackward = 0
+   self.cnt = 0
+
+
    if self.affine then
       self.weight = torch.Tensor(nOutput)
       self.bias = torch.Tensor(nOutput)
@@ -101,6 +107,10 @@ end
 function BN:updateOutput(input)
    self:checkInputDim(input)
 
+   if self.timerEnable then
+   	startTime = sys.clock()
+   end
+
    input = makeContiguous(self, input)
 
    self.output:resizeAs(input)
@@ -122,6 +132,14 @@ function BN:updateOutput(input)
       self.momentum,
       self.eps)
 
+   if self.timerEnable then
+		print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward)
+		sys.sbnTime = sys.sbnTime + (self.timeForward + self.timeBackward)
+	self.timeForward =  (sys.clock() - startTime)
+	self.timeBackward = 0
+	self.cnt = self.cnt + 1
+   end
+
    return self.output
 end
 
@@ -129,6 +147,10 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
    self:checkInputDim(input)
    self:checkInputDim(gradOutput)
    assert(self.save_mean and self.save_std, 'must call :updateOutput() first')
+
+   if self.timerEnable then
+	startTime = sys.clock()
+   end
 
    input, gradOutput = makeContiguous(self, input, gradOutput)
 
@@ -151,6 +173,11 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
       self.train,
       scale,
       self.eps)
+
+   if self.timerEnable then
+	self.timeBackward = self.timeBackward + (sys.clock() - startTime)
+   end
+
 
    return self.gradInput
 end
