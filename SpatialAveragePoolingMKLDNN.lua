@@ -13,7 +13,7 @@ function SpatialAveragePooling:__init(kW, kH, dW, dH, padW, padH)
    self.count_include_pad = true
    self.divide = true
 
-   self.dnnPrimitives = torch.LongTensor(12)
+
    self.mkldnnInitOk = 0
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
@@ -54,6 +54,9 @@ end
 
 function SpatialAveragePooling:updateOutput(input)
    backwardCompatible(self)
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(12)
+   end
    if self.compare  then
 	   input.THNN.SpatialAveragePooling_updateOutput(
 	      input:cdata(),

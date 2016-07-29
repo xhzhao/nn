@@ -23,7 +23,6 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
    self.gradBias = torch.Tensor(nOutputPlane)
 
    -- xhzhao add:
-   self.dnnPrimitives = torch.LongTensor(24)
    self.mkldnnInitOk = 0
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
@@ -78,6 +77,9 @@ end
 
 function SpatialConvolutionMM:updateOutput(input)
 
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(24)
+   end
    if self.timerEnable then
 	sys.tic()
    end

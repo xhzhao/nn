@@ -12,7 +12,6 @@ function Threshold:__init(th,v,ip)
    if (ip and type(ip) ~= 'boolean') then
       error('in-place flag must be boolean')
    end
-   self.dnnPrimitives = torch.LongTensor(3)
    self.mkldnnInitOk = 0
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
@@ -24,6 +23,9 @@ function Threshold:__init(th,v,ip)
 end
 
 function Threshold:updateOutput(input)
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(3)
+   end
    if self.timerEnable then
 	sys.tic()
    end

@@ -14,7 +14,6 @@ function SpatialMaxPooling:__init(kW, kH, dW, dH, padW, padH)
    self.padW = padW or 0
    self.padH = padH or 0
 
-   self.dnnPrimitives = torch.LongTensor(12)
    self.mkldnnInitOk = 0
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
@@ -38,6 +37,9 @@ function SpatialMaxPooling:floor()
 end
 
 function SpatialMaxPooling:updateOutput(input)
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(12)
+   end
    if self.timerEnable then
 	sys.tic()
    end
