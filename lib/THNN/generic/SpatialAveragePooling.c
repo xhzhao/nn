@@ -2,6 +2,7 @@
 #define TH_GENERIC_FILE "generic/SpatialAveragePooling.c"
 #else
 
+#define  OMP_BATCH_SIZE 10
 void THNN_(SpatialAveragePooling_updateOutput)(
           THNNState *state,
           THTensor *input,
@@ -76,11 +77,10 @@ void THNN_(SpatialAveragePooling_updateOutput)(
   THArgCheck(THTensor_(isContiguous)(output), 3, "output must be contiguous");
   input_data = THTensor_(data)(input);
   output_data = THTensor_(data)(output);
-  
-#pragma omp parallel for private(k)
+  long p;
+#pragma omp parallel for collapse(2)
   for(k = 0; k < nInputPlane; k++)
   {
-    long p;
     for(p = 0; p < nbatch; p++)
     {
       long xx, yy;
@@ -201,11 +201,10 @@ void THNN_(SpatialAveragePooling_updateGradInput)(
 
   gradInput_data = THTensor_(data)(gradInput);
   gradOutput_data = THTensor_(data)(gradOutput);
-
-#pragma omp parallel for private(k)
+  long p;
+#pragma omp parallel for collapse(2)
   for(k = 0; k < nInputPlane; k++)
-  {
-    long p;
+  { 
     for(p = 0; p < nbatch; p++)
     {
       real *ptr_gradOutput = gradOutput_data + p*nInputPlane*outputHeight*outputWidth + k*outputWidth*outputHeight;
