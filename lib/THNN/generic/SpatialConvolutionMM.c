@@ -153,7 +153,13 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init)(
 
 	if(sizeof(real) == sizeof(float))
 	{
-		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+		if(primitives->storage->data[LAYOUT_INPUT] == 0)
+		{
+			CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+		}
+		else{
+			lt_user_input = primitives->storage->data[LAYOUT_INPUT];
+		}
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
@@ -526,7 +532,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 			resConv[dnnResourceDiffDst] = buffer_bwddata_output;
 			convert_resources[dnnResourceFrom] = outPtr;
 			convert_resources[dnnResourceTo]   = buffer_bwddata_output;
-			CHECK_ERR( dnnExecute_F32(cv_bwddata_output,convert_resources), err );
+			//CHECK_ERR( dnnExecute_F32(cv_bwddata_output,convert_resources), err );
 			//fprintf(stderr, "		convert 1 called. \n");
 		}
 		
@@ -534,7 +540,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 			resConv[dnnResourceFilter] = buffer_bwddata_filter;
 			convert_resources[dnnResourceFrom] = filterPtr;
 			convert_resources[dnnResourceTo]   = buffer_bwddata_filter;
-			CHECK_ERR( dnnExecute_F32(cv_bwddata_filter, convert_resources), err );
+			//CHECK_ERR( dnnExecute_F32(cv_bwddata_filter, convert_resources), err );
 			//fprintf(stderr, "		convert 2 called. \n");
 		}
 
@@ -653,13 +659,13 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
 			resConv[dnnResourceSrc] = buffer_bwdfilter_input;
 			convert_resources[dnnResourceFrom] = inPtr;
 			convert_resources[dnnResourceTo]   = buffer_bwdfilter_input;
-			CHECK_ERR( dnnExecute_F32(cv_bwdfilter_input, convert_resources), err );
+			//CHECK_ERR( dnnExecute_F32(cv_bwdfilter_input, convert_resources), err );
 		}
 		if(cv_bwdfilter_output){
 			resConv[dnnResourceDiffDst] = buffer_bwdfilter_output;
 			convert_resources[dnnResourceFrom] = outPtr;
 			convert_resources[dnnResourceTo]   = buffer_bwdfilter_output;
-			CHECK_ERR( dnnExecute_F32(cv_bwdfilter_output, convert_resources), err );
+			//CHECK_ERR( dnnExecute_F32(cv_bwdfilter_output, convert_resources), err );
 		}
 		if(cv_bwdfilter_filter){
 			resConv[dnnResourceDiffFilter] = buffer_bwdfilter_filter;
