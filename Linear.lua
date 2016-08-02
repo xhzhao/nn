@@ -10,6 +10,14 @@ function Linear:__init(inputSize, outputSize, bias)
       self.gradBias = torch.Tensor(outputSize)
    end
    self:reset()
+
+   self.timerEnable = sys.timerEnable
+   self.timeForward = 0
+   self.timeBackward1 = 0
+   self.timeBackward2 = 0
+   self.cnt = 0
+
+
 end
 
 function Linear:noBias()
@@ -51,6 +59,8 @@ local function updateAddBuffer(self, input)
 end
 
 function Linear:updateOutput(input)
+
+   startTime = sys.clock()
    if input:dim() == 1 then
       self.output:resize(self.weight:size(1))
       if self.bias then self.output:copy(self.bias) else self.output:zero() end
@@ -69,12 +79,20 @@ function Linear:updateOutput(input)
       error('input must be vector or matrix')
    end
 
+   if self.timerEnable then
+                print("Linear forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
+                sys.linearTime = sys.linearTime + (self.timeForward + self.timeBackward1+ self.timeBackward2)
+                self.timeForward = (sys.clock() - startTime)
+                self.cnt = self.cnt + 1
+   end
+
    return self.output
 end
 
 function Linear:updateGradInput(input, gradOutput)
    if self.gradInput then
 
+   startTime = sys.clock()
       local nElement = self.gradInput:nElement()
       self.gradInput:resizeAs(input)
       if self.gradInput:nElement() ~= nElement then
@@ -86,11 +104,15 @@ function Linear:updateGradInput(input, gradOutput)
          self.gradInput:addmm(0, 1, gradOutput, self.weight)
       end
 
-      return self.gradInput
+   if self.timerEnable then
+        self.timeBackward1 = (sys.clock() - startTime)
+   end
+    return self.gradInput
    end
 end
 
 function Linear:accGradParameters(input, gradOutput, scale)
+   startTime = sys.clock()
    scale = scale or 1
    if input:dim() == 1 then
       self.gradWeight:addr(scale, gradOutput, input)
@@ -103,6 +125,10 @@ function Linear:accGradParameters(input, gradOutput, scale)
          self.gradBias:addmv(scale, gradOutput:t(), self.addBuffer)
       end
    end
+   if self.timerEnable then
+        self.timeBackward2 =  (sys.clock() - startTime)
+   end
+
 end
 
 -- we do not need to accumulate parameters when sharing

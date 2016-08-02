@@ -4,9 +4,19 @@ function Concat:__init(dimension)
    parent.__init(self)
    self.size = torch.LongStorage()
    self.dimension = dimension
+
+   self.timerEnable = sys.timerEnable
+   self.timeForward = 0
+   self.timeBackward1 = 0
+   self.timeBackward2 = 0
+   self.cnt = 0
+
+
 end
 
 function Concat:updateOutput(input)
+   startTime = sys.clock()
+
    local outs = {}
    for i=1,#self.modules do
       local currentOutput = self:rethrowErrors(self.modules[i], i, 'updateOutput', input)
@@ -25,10 +35,22 @@ function Concat:updateOutput(input)
       self.output:narrow(self.dimension, offset, currentOutput:size(self.dimension)):copy(currentOutput)
       offset = offset + currentOutput:size(self.dimension)
    end
+
+
+
+
+if self.timerEnable then
+                print("Concat forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
+                sys.concatTime2 = sys.concatTime2 + (self.timeForward + self.timeBackward1+ self.timeBackward2)
+        self.timeForward = (sys.clock() - startTime)
+        self.cnt = self.cnt + 1
+   end
    return self.output
 end
 
 function Concat:updateGradInput(input, gradOutput)
+
+   startTime = sys.clock()
    self.gradInput:resizeAs(input)
 
    local offset = 1
@@ -45,10 +67,18 @@ function Concat:updateGradInput(input, gradOutput)
       end
       offset = offset + currentOutput:size(self.dimension)
    end
+
+   if self.timerEnable then
+        self.timeBackward1 =  ( sys.clock() - startTime)
+   end
+
+
    return self.gradInput
 end
 
 function Concat:accGradParameters(input, gradOutput, scale)
+
+   startTime = sys.clock()
    scale = scale or 1
    local offset = 1
    for i,module in ipairs(self.modules) do
@@ -58,6 +88,9 @@ function Concat:accGradParameters(input, gradOutput, scale)
           gradOutput:narrow(self.dimension, offset, currentOutput:size(self.dimension)),
           scale)
       offset = offset + currentOutput:size(self.dimension)
+   end
+   if self.timerEnable then
+        self.timeBackward2 =  sys.clock() - startTime
    end
 end
 
