@@ -12,6 +12,13 @@ function SpatialAveragePooling:__init(kW, kH, dW, dH, padW, padH)
    self.ceil_mode = false
    self.count_include_pad = true
    self.divide = true
+
+   self.timerEnable = sys.timerEnable
+   self.timeForward = 0
+   self.timeBackward = 0
+   self.cnt = 0
+
+
 end
 
 function SpatialAveragePooling:ceil()
@@ -44,6 +51,12 @@ local function backwardCompatible(self)
 end
 
 function SpatialAveragePooling:updateOutput(input)
+
+   if self.timerEnable then
+        startTime = sys.clock()
+   end
+
+
    backwardCompatible(self)
    input.THNN.SpatialAveragePooling_updateOutput(
       input:cdata(),
@@ -59,10 +72,25 @@ function SpatialAveragePooling:updateOutput(input)
    if not self.divide then
      self.output:mul(self.kW*self.kH)
    end
+
+   if self.timerEnable then
+                print("SpatialAveragePooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
+                sys.avgpoolingTime = sys.avgpoolingTime + (self.timeForward + self.timeBackward)
+        self.timeForward =  sys.clock() - startTime
+        self.cnt = self.cnt + 1
+   end
+
+
    return self.output
 end
 
 function SpatialAveragePooling:updateGradInput(input, gradOutput)
+
+   if self.timerEnable then
+        startTime = sys.clock()
+   end
+
+
    if self.gradInput then
       input.THNN.SpatialAveragePooling_updateGradInput(
          input:cdata(),
@@ -78,6 +106,10 @@ function SpatialAveragePooling:updateGradInput(input, gradOutput)
       if not self.divide then
          self.gradInput:mul(self.kW*self.kH)
       end
+   if self.timerEnable then
+        self.timeBackward =   sys.clock() - startTime
+   end
+
       return self.gradInput
    end
 end

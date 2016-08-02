@@ -109,6 +109,9 @@
 #include "generic/BatchNormalization.c"
 #include "THGenerateFloatTypes.h"
 
+#include "generic/BatchNormalizationMKLDNN.c"
+#include "THGenerateFloatTypes.h"
+
 #include "generic/unfold.c"
 #include "THGenerateFloatTypes.h"
 
@@ -134,6 +137,9 @@
 #include "THGenerateFloatTypes.h"
 
 #include "generic/SpatialAveragePooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialAveragePoolingMKLDNN.c"
 #include "THGenerateFloatTypes.h"
 
 #include "generic/SpatialFractionalMaxPooling.c"

@@ -4,12 +4,35 @@ function ConcatTable:__init()
    parent.__init(self)
    self.modules = {}
    self.output = {}
+
+   self.timerEnable = sys.timerEnable
+   self.timeForward = 0
+   self.timeBackward = 0
+   self.cnt = 0
+
+  
 end
 
 function ConcatTable:updateOutput(input)
+   if self.timerEnable then
+        startTime = sys.clock()
+   end
+
+
    for i=1,#self.modules do
       self.output[i] = self:rethrowErrors(self.modules[i], i, 'updateOutput', input)
    end
+
+   if self.timerEnable then
+                print("ConcatTable  forward time =         ",self.timeForward," backward time =",self.timeBackward)
+                sys.concatTime = sys.concatTime + (self.timeForward + self.timeBackward)
+        self.timeForward =  (sys.clock() - startTime)
+        self.timeBackward = 0
+        self.cnt = self.cnt + 1
+   end
+
+
+
    return self.output
 end
 
@@ -30,6 +53,12 @@ end
 local function backward(self, method, input, gradOutput, scale)
    local isTable = torch.type(input) == 'table'
    local wasTable = torch.type(self.gradInput) == 'table'
+
+   if self.timerEnable then
+        startTime = sys.clock()
+   end
+
+
    if isTable then
       for i,module in ipairs(self.modules) do
          local currentGradInput = self:rethrowErrors(module, i, method, input, gradOutput[i], scale)
@@ -71,6 +100,12 @@ local function backward(self, method, input, gradOutput, scale)
          end
       end
    end
+
+   if self.timerEnable then
+        self.timeBackward =  (sys.clock() - startTime)
+   end
+
+
    return self.gradInput
 end
 
