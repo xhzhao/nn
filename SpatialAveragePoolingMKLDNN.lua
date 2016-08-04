@@ -138,17 +138,7 @@ function SpatialAveragePooling:updateGradInput(input, gradOutput)
 
    else
 
-      input.THNN.SpatialAveragePooling_updateGradInput(
-         input:cdata(),
-         gradOutput:cdata(),
-         self.gradInput:cdata(),
-         self.kW, self.kH,
-         self.dW, self.dH,
-         self.padW, self.padH,
-         self.ceil_mode,
-         self.count_include_pad
-      )
---[[
+
       input.THNN.SpatialAveragePooling_MKLDNN_updateGradInput(
          input:cdata(),
          gradOutput:cdata(),
@@ -160,7 +150,6 @@ function SpatialAveragePooling:updateGradInput(input, gradOutput)
          self.count_include_pad,
          self.dnnPrimitives:cdata()l
       )
-]]--
    end
 
       -- for backward compatibility

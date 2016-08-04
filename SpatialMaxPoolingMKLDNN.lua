@@ -128,17 +128,19 @@ function SpatialMaxPooling:updateGradInput(input, gradOutput)
 	      input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,5)
 
    else
+        input.THNN.SpatialMaxPooling_MKLDNN_updateGradInput(
+              input:cdata(),
+              gradOutput:cdata(),
+              self.gradInput:cdata(),
+              self.indices:cdata(),
+              self.kW, self.kH,
+              self.dW, self.dH,
+              self.padW, self.padH,
+              self.ceil_mode,
+              self.dnnPrimitives:cdata()
+           )
 
-	   input.THNN.SpatialMaxPooling_updateGradInput(
-	      input:cdata(),
-	      gradOutput:cdata(),
-	      self.gradInput:cdata(),
-	      self.indices:cdata(),
-	      self.kW, self.kH,
-	      self.dW, self.dH,
-	      self.padW, self.padH,
-	      self.ceil_mode
-	   )
+
    end
    if self.timerEnable then
 	self.timeBackward = sys.clock() - startTime
