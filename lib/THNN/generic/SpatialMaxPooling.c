@@ -38,7 +38,17 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(
 
 	real * resPool1[dnnResourceNumber] = {0};
 	dnnLayout_t lt_user_input = NULL,lt_user_output=NULL;
-	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+
+	if(primitives->storage->data[POOLING_LAYOUT_INPUT] == 0)
+	{
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+		primitives->storage->data[POOLING_LAYOUT_OUTPUT] = lt_user_input;
+		fprintf(stderr ,"MKLDNN POOLING fail to get input layout \n");
+	}
+	else{
+		lt_user_input = primitives->storage->data[POOLING_LAYOUT_INPUT];
+		fprintf(stderr ,"MKLDNN POOLING get valid input layout \n");
+	}
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides) , err );
 
 #if NEW_INTERFACE
@@ -82,7 +92,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(
 	//CHECK_ERR( THNN_(init_conversion)(&cv_forward_input, &buffer_forward_input, lt_pool_forward_input, lt_user_input), err );
 	if(!dnnLayoutCompare_F32(lt_user_output, lt_pool_forward_output))
 	{
-		fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
+		//fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
 		CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, lt_pool_forward_output, lt_user_output), err );
 		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_pool_forward_output), err );
 	}
@@ -97,6 +107,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init)(
 
 
 	//save the dnnPrimitive to THTensor(long int array)
+	primitives->storage->data[POOLING_LAYOUT_OUTPUT] = lt_pool_forward_output;
 	primitives->storage->data[POOLING_FORWARD] = (long long)pool1;
 	primitives->storage->data[POOLING_BACKWARD] = (long long)pool_bwd;
 	primitives->storage->data[CV_POOLING_FORWARD_INPUT] = (long long)cv_forward_input;
@@ -253,7 +264,8 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 
 	CHECK_ERR( dnnExecute_F32(pool1, (void*)resPool1), err );
 	if(cv_forward_output){
-		CHECK_ERR( dnnConversionExecute_F32(cv_forward_output, buffer_forward_output, output_data), err );
+		output->storage->data = buffer_forward_output;
+		//CHECK_ERR( dnnConversionExecute_F32(cv_forward_output, buffer_forward_output, output_data), err );
 	} 
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);

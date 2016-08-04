@@ -469,8 +469,8 @@ dnnError_t dnnInnerProductCreateBackwardBias_F64(
 
 
 typedef enum {
-    LAYOUT_INPUT			= 0,
-    LAYPUT_OUTPUT			= 1,
+    CONV_LAYOUT_INPUT			= 0,
+    CONV_LAYOUT_OUTPUT			= 1,
     FORWARD_INDEX   			= 2,
     BWD_DATA_INDEX  			= 3,
     BWD_FILTER_INDEX  			= 4,
@@ -499,34 +499,40 @@ typedef enum {
 
 
 typedef enum {
-    POOLING_FORWARD            		= 0,
-    POOLING_BACKWARD           		= 1,
-    CV_POOLING_FORWARD_INPUT   		= 2,
-    CV_POOLING_FORWARD_OUTPUT  		= 3,
-    CV_POOLING_BACKWARD_INPUT  		= 4,
-    CV_POOLING_BACKWARD_OUTPUT 		= 5,
-    BUFFER_POOLING_FORWARD_INPUT       	= 6,
-    BUFFER_POOLING_FORWARD_OUTPUT      	= 7,
-    BUFFER_POOLING_FORWARD_WORKSPACE   	= 8,
-    BUFFER_POOLING_BACKWARD_INPUT       = 9,
-    BUFFER_POOLING_BACKWARD_OUTPUT      = 10,
-    BUFFER_POOLING_BACKWARD_WORKSPACE   = 11
+    POOLING_LAYOUT_INPUT		= 0,
+    POOLING_LAYOUT_OUTPUT		= 1,
+    POOLING_FORWARD            		= 2,
+    POOLING_BACKWARD           		= 3,
+    CV_POOLING_FORWARD_INPUT   		= 4,
+    CV_POOLING_FORWARD_OUTPUT  		= 5,
+    CV_POOLING_BACKWARD_INPUT  		= 6,
+    CV_POOLING_BACKWARD_OUTPUT 		= 7,
+    BUFFER_POOLING_FORWARD_INPUT       	= 8,
+    BUFFER_POOLING_FORWARD_OUTPUT      	= 9,
+    BUFFER_POOLING_FORWARD_WORKSPACE   	= 10,
+    BUFFER_POOLING_BACKWARD_INPUT       = 11,
+    BUFFER_POOLING_BACKWARD_OUTPUT      = 12,
+    BUFFER_POOLING_BACKWARD_WORKSPACE   = 13
 } mkldnnPoolingIndex_t;
 
 
 typedef enum {
-    RELU_FORWARD            		= 0,
-    RELU_BACKWARD           		= 1
+    RELU_LAYOUT_INPUT			= 0,
+    RELU_LAYOUT_OUTPUT			= 1,
+    RELU_FORWARD            		= 2,
+    RELU_BACKWARD           		= 3
 } mkldnnReLUIndex_t;
 
 typedef enum {
-    BN_FORWARD            		= 0,
-    BN_BACKWARD           		= 1,
-    BN_SCALESHIFT           		= 2,
-    BUFFER_BN_FORWARD_WORKSPACE       	= 3,
-    BUFFER_BN_FORWARD_SCALESHIFT      	= 4,
-    BUFFER_BN_BACKWARD_WORKSPACE       	= 5,
-    BUFFER_BN_BACKWARD_SCALESHIFT      	= 6
+    BN_LAYOUT_INPUT			= 0,
+    BN_LAYOUT_OUTPUT			= 1,
+    BN_FORWARD            		= 2,
+    BN_BACKWARD           		= 3,
+    BN_SCALESHIFT           		= 4,
+    BUFFER_BN_FORWARD_WORKSPACE       	= 5,
+    BUFFER_BN_FORWARD_SCALESHIFT      	= 6,
+    BUFFER_BN_BACKWARD_WORKSPACE       	= 7,
+    BUFFER_BN_BACKWARD_SCALESHIFT      	= 8
 } mkldnnBNIndex_t;
 
 

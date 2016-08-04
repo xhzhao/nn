@@ -60,6 +60,7 @@ end
 
 function Linear:updateOutput(input)
 
+   self:CheckInputLayout(input)
    startTime = sys.clock()
    if input:dim() == 1 then
       self.output:resize(self.weight:size(1))

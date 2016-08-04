@@ -60,6 +60,7 @@ function BN:__init(nOutput, eps, momentum, affine)
    self.timeForward = 0
    self.timeBackward = 0
    self.cnt = 0
+   self:setEngine(1)
 
 
    if self.affine then
@@ -125,6 +126,7 @@ function BN:updateOutput(input)
    self.save_std = self.save_std or input.new()
    self.save_std:resizeAs(self.running_var)
 
+   self.dnnPrimitives:cdata().storage.data[0] = input:cdata().mkldnnLayout
    if self.compare then
 	   input.THNN.BatchNormalization_updateOutput(
 	      input:cdata(),
@@ -171,6 +173,7 @@ function BN:updateOutput(input)
 	      self.eps,
 	      self.dnnPrimitives:cdata(),self.mkldnnInitOk)
    end
+   self.mkldnnInitOk = 1
    if self.timerEnable then
 		print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward)
 		sys.sbnTime = sys.sbnTime + (self.timeForward + self.timeBackward)
@@ -178,7 +181,7 @@ function BN:updateOutput(input)
 	self.timeBackward = 0
 	self.cnt = self.cnt + 1
    end
-
+   self.output:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
    return self.output
 end
 

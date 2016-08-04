@@ -26,11 +26,26 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init)(
 #endif
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	CHECK_ERR( dnnLayoutCreate_F32(&lt_relu_input, dimension, inputSize, inputStrides) , err );
+	if(primitives->storage->data[RELU_LAYOUT_INPUT] == 0)
+	{
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_relu_input, dimension, inputSize, inputStrides) , err );
+		primitives->storage->data[RELU_LAYOUT_OUTPUT] = lt_relu_input;
+		fprintf(stderr ,"MKLDNN RELU fail to get input layout \n");
+	}
+	else{
+		lt_relu_input = primitives->storage->data[RELU_LAYOUT_INPUT];
+		primitives->storage->data[RELU_LAYOUT_OUTPUT] = primitives->storage->data[RELU_LAYOUT_INPUT];
+		fprintf(stderr ,"MKLDNN RELU get valid input layout \n");
+	}
+
+
 
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_relu_diff_out, dimension, outputSize, outputStrides) , err );
+
+
+
 #if NEW_INTERFACE
 	CHECK_ERR( dnnReLUCreateForward_F32(&relu_forward, attributes, lt_relu_input, threshold), err );
 	CHECK_ERR( dnnReLUCreateBackward_F32(&relu_backward, attributes, lt_relu_diff_out, lt_relu_input, threshold), err );

@@ -30,6 +30,7 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
    self.timeBackward1 = 0
    self.timeBackward2 = 0
    self.cnt = 0
+   self:setEngine(1)
 
    --print ("mkldnn SpatialConvolutionMM init, compare = ",self.compare, "timerEnable = ",self.timerEnable)
 
@@ -79,7 +80,7 @@ end
 function SpatialConvolutionMM:updateOutput(input)
 
    if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(24)
+      self.dnnPrimitives = torch.LongTensor(25)
    end
    if self.timerEnable then
 	startTime = sys.clock()
@@ -91,9 +92,12 @@ function SpatialConvolutionMM:updateOutput(input)
       self.padH = self.padding
       self.padding = nil
    end
-   --print "SpatialConvolutionMM:updateOutput"
-   input = makeContiguous(self, input)
+   --input = makeContiguous(self, input)
 
+   --set input mkldnnLayout to dnnPrimitives, this info comes from the previous layer
+   --if this is the first layer, then mkldnnLayout = 0
+   --if not, then mkldnnLayout should not be 0
+   self.dnnPrimitives:cdata().storage.data[0] = input:cdata().mkldnnLayout
    if self.compare  then
 
 	   input.THNN.SpatialConvolutionMM_updateOutput(
@@ -153,6 +157,9 @@ function SpatialConvolutionMM:updateOutput(input)
         self.timeForward = (sys.clock() - startTime)
         self.cnt = self.cnt + 1
    end
+   --pass the output layout to the next layer
+   --release the original buffer, and replace it with the internal buffer.
+   self.output:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
    return self.output
 end
 

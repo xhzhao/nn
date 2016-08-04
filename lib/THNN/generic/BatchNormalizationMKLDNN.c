@@ -20,8 +20,19 @@ static void THNN_(BatchNormalization_MKLDNN_init)(
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
 
-	dnnLayout_t lt_user_input = NULL,lt_user_output=NULL;
-	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+	dnnLayout_t lt_user_input = NULL;
+
+	if(primitives->storage->data[BN_LAYOUT_INPUT] == 0)
+	{
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+		primitives->storage->data[BN_LAYOUT_OUTPUT] = lt_user_input;
+		fprintf(stderr ,"MKLDNN BN fail to get input layout \n");
+	}
+	else{
+		lt_user_input = primitives->storage->data[BN_LAYOUT_INPUT];
+		primitives->storage->data[BN_LAYOUT_OUTPUT] = primitives->storage->data[BN_LAYOUT_INPUT];
+		fprintf(stderr ,"MKLDNN BN get valid input layout \n");
+	}
 
 	CHECK_ERR( dnnBatchNormalizationCreateForward_F32(&bn_forward,NULL,lt_user_input,eps), err );
 	CHECK_ERR( dnnBatchNormalizationCreateBackwardData_F32(&bn_backward,NULL,lt_user_input,eps), err );

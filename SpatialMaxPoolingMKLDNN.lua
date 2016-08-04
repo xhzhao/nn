@@ -20,6 +20,7 @@ function SpatialMaxPooling:__init(kW, kH, dW, dH, padW, padH)
    self.timeForward = 0
    self.timeBackward = 0
    self.cnt = 0
+   self:setEngine(1)
 
 
    self.ceil_mode = false
@@ -38,7 +39,7 @@ end
 
 function SpatialMaxPooling:updateOutput(input)
    if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(12)
+      self.dnnPrimitives = torch.LongTensor(14)
    end
    if self.timerEnable then
 	startTime = sys.clock()
@@ -49,6 +50,7 @@ function SpatialMaxPooling:updateOutput(input)
    self.padW = self.padW or 0
    self.padH = self.padH or 0
 
+   self.dnnPrimitives:cdata().storage.data[0] = input:cdata().mkldnnLayout
    if self.compare  then
 	   input.THNN.SpatialMaxPooling_updateOutput(
 	      input:cdata(),
@@ -93,6 +95,7 @@ function SpatialMaxPooling:updateOutput(input)
         self.timeForward = sys.clock() - startTime
         self.cnt = self.cnt + 1
    end
+   self.output:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
    return self.output
 end
 

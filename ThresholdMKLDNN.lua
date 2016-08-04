@@ -18,18 +18,21 @@ function Threshold:__init(th,v,ip)
    self.timeForward = 0
    self.timeBackward = 0
    self.cnt = 0
+   self:setEngine(1)
 
    self:validateParameters()
 end
 
 function Threshold:updateOutput(input)
    if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(3)
+      self.dnnPrimitives = torch.LongTensor(4)
    end
    if self.timerEnable then
 	startTime = sys.clock()
    end
    self:validateParameters()
+
+   self.dnnPrimitives:cdata().storage.data[0] = input:cdata().mkldnnLayout
    if self.compare  then
 	   input.THNN.Threshold_updateOutput(
 	      input:cdata(),
@@ -69,6 +72,7 @@ function Threshold:updateOutput(input)
         self.timeForward = sys.clock() - startTime
         self.cnt = self.cnt + 1
    end
+   self.output:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
    return self.output
 end
 
