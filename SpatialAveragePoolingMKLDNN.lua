@@ -148,7 +148,7 @@ function SpatialAveragePooling:updateGradInput(input, gradOutput)
          self.padW, self.padH,
          self.ceil_mode,
          self.count_include_pad,
-         self.dnnPrimitives:cdata()l
+         self.dnnPrimitives:cdata()
       )
    end
 
