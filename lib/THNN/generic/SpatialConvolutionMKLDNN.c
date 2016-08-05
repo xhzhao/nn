@@ -79,7 +79,39 @@ void THNN_(SpatialConvolutionMM_compare)(
 
 }
 
+/*Convert tensor from internal layout to NCHW layout*/
+void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
+          THNNState * state,
+          THTensor * input
+	)
+{
+	dnnError_t err;
+	int N = input->size[0];
+	int inC = input->size[1];
+	int inH = input->size[2];
+	int inW = input->size[3];
 
+	size_t inputSize[dimension] = 	{inW,inH,inC,N};
+	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
+	dnnLayout_t lt_user_input = NULL;
+	dnnLayout_t mkldnnLayout = input->mkldnnLayout ;
+	dnnPrimitive_t cv_BacktoNCHW = NULL;
+	real * buffer = NULL;
+	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+
+
+	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW called: N=%d,C=%d,H=%d,W=%d, mkldnnLayout = 0x%x\n", N,inC,inH,inW,mkldnnLayout);
+	if(!dnnLayoutCompare_F32(mkldnnLayout, lt_user_input))
+	{
+		CHECK_ERR( dnnConversionCreate_F32(&cv_BacktoNCHW, mkldnnLayout, lt_user_input), err );
+		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer), lt_user_input), err );
+		//release the original buffer
+		real * inPtr = THTensor_(data)(input);
+		CHECK_ERR( dnnConversionExecute_F32(cv_BacktoNCHW, inPtr, buffer), err );
+		input->storage->data = buffer;
+	}
+
+}
 
 static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
           THLongTensor *primitives,

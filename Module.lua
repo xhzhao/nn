@@ -17,9 +17,9 @@ end
 function Module:CheckInputLayout(input)
    if self.engine == 0 and input:cdata().mkldnnLayout ~= 0 then
       print("Module:convertBackToNCHW")
+      input.THNN.MKLDNN_ConvertLayoutBackToNCHW(input:cdata())
    end
-   return input
-      --return input.THNN.ConvertLayoutToNCHW(input)
+   return 
 end
 
 

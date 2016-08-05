@@ -12,6 +12,10 @@ TH_API void THNN_(SpatialConvolutionMM_compare)(
           long long len,
 	  int compareSource
         );
+TH_API void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
+          THNNState * state,
+          THTensor * input
+	);
 
 /*Convolution*/
 TH_API void THNN_(SpatialConvolutionMM_MKLDNN_forward)(

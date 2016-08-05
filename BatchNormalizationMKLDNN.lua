@@ -111,10 +111,6 @@ end
 
 function BN:updateOutput(input)
    self:checkInputDim(input)
-
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(12)
-   end
    if self.timerEnable then
    	startTime = sys.clock()
    end
@@ -123,6 +119,10 @@ function BN:updateOutput(input)
    else
 	self.mkldnnInitOk = 1
    end
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(12)
+   end
+
    input = makeContiguous(self, input)
 
    self.output:resizeAs(input)
@@ -131,7 +131,6 @@ function BN:updateOutput(input)
    self.save_std = self.save_std or input.new()
    self.save_std:resizeAs(self.running_var)
 
-   self.dnnPrimitives:cdata().storage.data[0] = input:cdata().mkldnnLayout
    if self.compare then
 	   input.THNN.BatchNormalization_updateOutput(
 	      input:cdata(),
@@ -185,7 +184,6 @@ function BN:updateOutput(input)
 	self.timeBackward = 0
 	self.cnt = self.cnt + 1
    end
-   self.output:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
    return self.output
 end
 
@@ -203,7 +201,6 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
    scale = scale or 1
    if gradInput then
       gradInput:resizeAs(gradOutput)
-      self.dnnPrimitives:cdata().storage.data[0] = gradOutput:cdata().mkldnnLayout
    end
 
    if self.compare then
@@ -308,10 +305,6 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
    if self.timerEnable then
 	self.timeBackward = self.timeBackward + (sys.clock() - startTime)
    end
-   if self.gradInput then
-      self.gradInput:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
-   end
-
    return self.gradInput
 end
 

@@ -181,7 +181,6 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	int outH = gradOutput->size[2];
 	int outW = gradOutput->size[3];
 	
-	fprintf(stderr, "RELU backward initOk = %d \n", initOk);
 	if(initOk == 0)
 	{
 		primitives->storage->data[RELU_LAYOUT_OUTPUT] = gradOutput->mkldnnLayout;
