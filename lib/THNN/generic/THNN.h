@@ -40,6 +40,7 @@ TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
           THTensor *finput,
           THTensor *fgradInput,
           THLongTensor *primitives,
+          int initOk,
           int kW,
           int kH,
           int dW,
@@ -55,6 +56,7 @@ TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
           THTensor *finput,
           THTensor *fgradInput,
           THLongTensor *primitives,
+          int initOk,
           int kW,
           int kH,
           int dW,
@@ -80,7 +82,8 @@ TH_API void THNN_(Threshold_MKLDNN_updateGradInput)(
           THTensor *gradInput,
           real threshold,
           bool inplace,
-          THLongTensor *primitives);
+          THLongTensor *primitives,
+          int initOk);
 
 /*MaxPooling*/
 TH_API void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
@@ -111,7 +114,8 @@ TH_API void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
           int padW,
           int padH,
           bool ceil_mode,
-          THLongTensor *primitives);
+          THLongTensor *primitives,
+          int initOk);
 
 
 /*AveragePooling*/
@@ -142,7 +146,8 @@ TH_API void THNN_(SpatialAveragePooling_MKLDNN_updateGradInput)(
           int padH,
           bool ceil_mode,
           bool count_include_pad,
-          THLongTensor *primitives);
+          THLongTensor *primitives,
+          int initOk);
 
 
 TH_API void THNN_(BatchNormalization_MKLDNN_updateOutput)(
@@ -159,7 +164,8 @@ TH_API void THNN_(BatchNormalization_MKLDNN_backward)(
   THTensor *running_mean, THTensor *running_var,
   THTensor *save_mean, THTensor *save_std,
   bool train, double scale, double eps,
-  THLongTensor *primitives);
+  THLongTensor *primitives,
+          int initOk);
 
 
 

@@ -15,6 +15,7 @@ function SpatialMaxPooling:__init(kW, kH, dW, dH, padW, padH)
    self.padH = padH or 0
 
    self.mkldnnInitOk = 0
+   self.initStep = 0
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
    self.timeForward = 0
@@ -38,11 +39,17 @@ function SpatialMaxPooling:floor()
 end
 
 function SpatialMaxPooling:updateOutput(input)
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(14)
-   end
+
    if self.timerEnable then
 	startTime = sys.clock()
+   end
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
+   end
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(16)
    end
    self.indices = self.indices or input.new()
    -- backward compatibility
@@ -50,7 +57,6 @@ function SpatialMaxPooling:updateOutput(input)
    self.padW = self.padW or 0
    self.padH = self.padH or 0
 
-   self.dnnPrimitives:cdata().storage.data[0] = input:cdata().mkldnnLayout
    if self.compare  then
 	   input.THNN.SpatialMaxPooling_updateOutput(
 	      input:cdata(),
@@ -88,14 +94,12 @@ function SpatialMaxPooling:updateOutput(input)
 	      self.mkldnnInitOk
 	   )
    end
-   self.mkldnnInitOk = 1
    if self.timerEnable then
         print("mkldnn SpatialMaxPooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
         sys.maxpoolingTime = sys.maxpoolingTime + self.timeForward + self.timeBackward
         self.timeForward = sys.clock() - startTime
         self.cnt = self.cnt + 1
    end
-   self.output:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
    return self.output
 end
 
@@ -126,13 +130,13 @@ function SpatialMaxPooling:updateGradInput(input, gradOutput)
 	      self.dW, self.dH,
 	      self.padW, self.padH,
 	      self.ceil_mode,
-	      self.dnnPrimitives:cdata()
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
 	      input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,5)
 
    else
 
-	   input.THNN.SpatialMaxPooling_updateGradInput(
+	input.THNN.SpatialMaxPooling_MKLDNN_updateGradInput(
 	      input:cdata(),
 	      gradOutput:cdata(),
 	      self.gradInput:cdata(),
@@ -140,7 +144,8 @@ function SpatialMaxPooling:updateGradInput(input, gradOutput)
 	      self.kW, self.kH,
 	      self.dW, self.dH,
 	      self.padW, self.padH,
-	      self.ceil_mode
+	      self.ceil_mode,
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
    end
    if self.timerEnable then

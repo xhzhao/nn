@@ -55,6 +55,7 @@ function BN:__init(nOutput, eps, momentum, affine)
 
    -- xhzhao add:
    self.mkldnnInitOk = 0
+   self.initStep = 0
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
    self.timeForward = 0
@@ -117,7 +118,11 @@ function BN:updateOutput(input)
    if self.timerEnable then
    	startTime = sys.clock()
    end
-
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
+   end
    input = makeContiguous(self, input)
 
    self.output:resizeAs(input)
@@ -173,7 +178,6 @@ function BN:updateOutput(input)
 	      self.eps,
 	      self.dnnPrimitives:cdata(),self.mkldnnInitOk)
    end
-   self.mkldnnInitOk = 1
    if self.timerEnable then
 		print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward)
 		sys.sbnTime = sys.sbnTime + (self.timeForward + self.timeBackward)
@@ -199,6 +203,7 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
    scale = scale or 1
    if gradInput then
       gradInput:resizeAs(gradOutput)
+      self.dnnPrimitives:cdata().storage.data[0] = gradOutput:cdata().mkldnnLayout
    end
 
    if self.compare then
@@ -235,7 +240,7 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
 	      self.train,
 	      scale,
 	      self.eps,
-	      self.dnnPrimitives:cdata())
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk)
 	   input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), gradInput:cdata(), outSize,11)
 	else
 
@@ -280,7 +285,7 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
               self.train,
               scale,
               self.eps,
-              self.dnnPrimitives:cdata())
+              self.dnnPrimitives:cdata(),self.mkldnnInitOk)
         else
            input.THNN.BatchNormalization_backward(
               input:cdata(),
@@ -303,7 +308,9 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
    if self.timerEnable then
 	self.timeBackward = self.timeBackward + (sys.clock() - startTime)
    end
-
+   if self.gradInput then
+      self.gradInput:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
+   end
 
    return self.gradInput
 end

@@ -111,7 +111,8 @@ void THNN_(BatchNormalization_MKLDNN_backward)(
   THTensor *running_mean, THTensor *running_var,
   THTensor *save_mean, THTensor *save_std,
   bool train, double scale, double eps,
-  THLongTensor *primitives)
+  THLongTensor *primitives,
+          int initOk)
 {
   long nInput = THTensor_(size)(input, 1);
   long f,n = THTensor_(nElement)(input) / nInput;

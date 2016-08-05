@@ -13,6 +13,7 @@ function Threshold:__init(th,v,ip)
       error('in-place flag must be boolean')
    end
    self.mkldnnInitOk = 0
+   self.initStep = 0
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
    self.timeForward = 0
@@ -24,15 +25,20 @@ function Threshold:__init(th,v,ip)
 end
 
 function Threshold:updateOutput(input)
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(4)
-   end
+
    if self.timerEnable then
 	startTime = sys.clock()
    end
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
+   end
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(8)
+   end
    self:validateParameters()
 
-   self.dnnPrimitives:cdata().storage.data[0] = input:cdata().mkldnnLayout
    if self.compare  then
 	   input.THNN.Threshold_updateOutput(
 	      input:cdata(),
@@ -65,14 +71,12 @@ function Threshold:updateOutput(input)
       self.mkldnnInitOk
    )
    end
-   self.mkldnnInitOk = 1
    if self.timerEnable then
         print("mkldnn Threshold forward time = ,",self.timeForward," backward time =",self.timeBackward)
         sys.reluTime = sys.reluTime + self.timeForward + self.timeBackward
         self.timeForward = sys.clock() - startTime
         self.cnt = self.cnt + 1
    end
-   self.output:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
    return self.output
 end
 
@@ -96,7 +100,7 @@ function Threshold:updateGradInput(input, gradOutput)
 	      tmpGradInput:cdata(),
 	      self.threshold,
 	      self.inplace,
-	      self.dnnPrimitives:cdata()
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
 	   --print("mkldnn Threshold backward compare")
 	   outSize = tonumber(tmpGradInput:cdata().size[0]*tmpGradInput:cdata().size[1]*tmpGradInput:cdata().size[2]*tmpGradInput:cdata().size[3])
@@ -108,7 +112,7 @@ function Threshold:updateGradInput(input, gradOutput)
 	      self.gradInput:cdata(),
 	      self.threshold,
 	      self.inplace,
-	      self.dnnPrimitives:cdata()
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
    end
    if self.timerEnable then

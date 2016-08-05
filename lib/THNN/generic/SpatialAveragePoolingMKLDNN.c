@@ -76,7 +76,6 @@ static void THNN_(SpatialAveragePooling_MKLDNN_init)(
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_backward_input, pool_bwd, dnnResourceDiffSrc), err );	
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_backward_output, pool_bwd, dnnResourceDiffDst), err );
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_backward_workspace, pool_bwd, dnnResourceWorkspace), err );
-	CHECK_ERR( dnnAllocateBuffer_F32((void**)&buffer_backward_workspace, lt_pool_backward_workspace) , err );
 
 	//forward conversion init
 	//CHECK_ERR( THNN_(init_conversion)(&cv_forward_input, &buffer_forward_input, lt_pool_forward_input, lt_user_input), err );
@@ -111,7 +110,7 @@ static void THNN_(SpatialAveragePooling_MKLDNN_init)(
 
 	primitives->storage->data[BUFFER_POOLING_BACKWARD_INPUT] = (long long)buffer_backward_input;
 	primitives->storage->data[BUFFER_POOLING_BACKWARD_OUTPUT] = (long long)buffer_backward_output;
-	primitives->storage->data[BUFFER_POOLING_BACKWARD_WORKSPACE] = (long long)buffer_backward_workspace;
+	primitives->storage->data[BUFFER_POOLING_BACKWARD_WORKSPACE] = (long long)buffer_forward_workspace;
 
 
 #if LOG_ENABLE
@@ -269,7 +268,8 @@ void THNN_(SpatialAveragePooling_MKLDNN_updateGradInput)(
           int padH,
           bool ceil_mode,
           bool count_include_pad,
-          THLongTensor *primitives)
+          THLongTensor *primitives,
+          int initOk)
 {
   int dimw = 2;
   int dimh = 1;

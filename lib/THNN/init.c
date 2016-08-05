@@ -94,6 +94,9 @@
 #include "generic/Threshold.c"
 #include "THGenerateFloatTypes.h"
 
+#include "generic/ThresholdMKLDNN.c"
+#include "THGenerateFloatTypes.h"
+
 #include "generic/ReLU6.c"
 #include "THGenerateFloatTypes.h"
 
@@ -121,6 +124,9 @@
 #include "generic/SpatialConvolutionMM.c"
 #include "THGenerateFloatTypes.h"
 
+#include "generic/SpatialConvolutionMKLDNN.c"
+#include "THGenerateFloatTypes.h"
+
 #include "generic/SpatialConvolutionLocal.c"
 #include "THGenerateFloatTypes.h"
 
@@ -146,6 +152,9 @@
 #include "THGenerateFloatTypes.h"
 
 #include "generic/SpatialMaxPooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialMaxPoolingMKLDNN.c"
 #include "THGenerateFloatTypes.h"
 
 #include "generic/SpatialMaxUnpooling.c"

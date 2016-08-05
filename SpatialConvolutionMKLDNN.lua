@@ -24,6 +24,7 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
 
    -- xhzhao add:
    self.mkldnnInitOk = 0
+   self.initStep = 0
    self.compare = sys.compare
    self.timerEnable = sys.timerEnable
    self.timeForward = 0
@@ -79,12 +80,19 @@ end
 
 function SpatialConvolutionMM:updateOutput(input)
 
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(25)
-   end
+
    if self.timerEnable then
 	startTime = sys.clock()
    end
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
+   end
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(29)
+   end
+
    self.finput = self.finput or input.new()
    self.fgradInput = self.fgradInput or input.new()
    if self.padding then
@@ -92,12 +100,8 @@ function SpatialConvolutionMM:updateOutput(input)
       self.padH = self.padding
       self.padding = nil
    end
-   --input = makeContiguous(self, input)
+   input = makeContiguous(self, input)
 
-   --set input mkldnnLayout to dnnPrimitives, this info comes from the previous layer
-   --if this is the first layer, then mkldnnLayout = 0
-   --if not, then mkldnnLayout should not be 0
-   self.dnnPrimitives:cdata().storage.data[0] = input:cdata().mkldnnLayout
    if self.compare  then
 
 	   input.THNN.SpatialConvolutionMM_updateOutput(
@@ -150,16 +154,12 @@ function SpatialConvolutionMM:updateOutput(input)
 	      self.padW, self.padH
 	   )
    end
-   self.mkldnnInitOk = 1
    if self.timerEnable then
         print("mkldnn conv forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
         sys.convTime = sys.convTime + (self.timeForward + self.timeBackward1+ self.timeBackward2)
         self.timeForward = (sys.clock() - startTime)
         self.cnt = self.cnt + 1
    end
-   --pass the output layout to the next layer
-   --release the original buffer, and replace it with the internal buffer.
-   self.output:cdata().mkldnnLayout = self.dnnPrimitives:cdata().storage.data[1]
    return self.output
 end
 
@@ -169,8 +169,7 @@ function SpatialConvolutionMM:updateGradInput(input, gradOutput)
    if self.gradInput then
 
 	   startTime = sys.clock()
-      input, gradOutput = makeContiguous(self, input, gradOutput)
-
+	   input, gradOutput = makeContiguous(self, input, gradOutput)
 	   if self.compare  then
 	      			
 			      input.THNN.SpatialConvolutionMM_updateGradInput(
@@ -195,7 +194,7 @@ function SpatialConvolutionMM:updateGradInput(input, gradOutput)
 				 self.bias:cdata(),
 				 self.finput:cdata(),
 				 self.fgradInput:cdata(),
-				 self.dnnPrimitives:cdata(),
+				 self.dnnPrimitives:cdata(),self.mkldnnInitOk,
 				 self.kW, self.kH,
 				 self.dW, self.dH,
 				 self.padW, self.padH
@@ -211,7 +210,7 @@ function SpatialConvolutionMM:updateGradInput(input, gradOutput)
 				 self.bias:cdata(),
 				 self.finput:cdata(),
 				 self.fgradInput:cdata(),
-				 self.dnnPrimitives:cdata(),
+				 self.dnnPrimitives:cdata(),self.mkldnnInitOk,
 				 self.kW, self.kH,
 				 self.dW, self.dH,
 				 self.padW, self.padH
@@ -251,7 +250,7 @@ function SpatialConvolutionMM:accGradParameters(input, gradOutput, scale)
 		      self.gradBias:cdata(),
 		      self.finput:cdata(),
 		      self.fgradInput:cdata(),
-		      self.dnnPrimitives:cdata(),
+		      self.dnnPrimitives:cdata(),self.mkldnnInitOk,
 		      self.kW, self.kH,
 		      self.dW, self.dH,
 		      self.padW, self.padH,
@@ -267,7 +266,7 @@ function SpatialConvolutionMM:accGradParameters(input, gradOutput, scale)
 		      self.gradBias:cdata(),
 		      self.finput:cdata(),
 		      self.fgradInput:cdata(),
-		      self.dnnPrimitives:cdata(),
+		      self.dnnPrimitives:cdata(),self.mkldnnInitOk,
 		      self.kW, self.kH,
 		      self.dW, self.dH,
 		      self.padW, self.padH,
