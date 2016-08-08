@@ -57,6 +57,7 @@ void THNN_(SpatialConvolutionMM_compare)(
     {   
         if( (ptr1[i]-ptr2[i] > threshold ) || (ptr1[i]-ptr2[i] < (0-threshold) ))
         {
+	    if(ptr2[i] !=0 &&( ptr1[i]/ptr2[i] - 1 >0.01 || ptr1[i]/ptr2[i] - 1 < -0.01 ))
             break;
         }
         if(ptr1[i] > threshold || ptr1[i] < (0-threshold))
