@@ -5,7 +5,7 @@
 
 #include "MKLDNN.h"
 
-static dnnError_t  THNN_(init_conversion)(dnnPrimitive_t *cv, real **ptr_out,
+dnnError_t  THNN_(init_conversion)(dnnPrimitive_t *cv, real **ptr_out,
                                  dnnLayout_t lt_pr, dnnLayout_t lt_us)
 {
 	dnnError_t err;
@@ -175,7 +175,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 			fprintf(stderr ,"MKLDNN Convolution get input layout FAIL......\n");
 		}
 		else{
-			lt_user_input = primitives->storage->data[CONV_LAYOUT_INPUT];
+			lt_user_input = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_INPUT];
 			fprintf(stderr ,"MKLDNN Convolution get input layout OK\n");
 		}
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
@@ -296,7 +296,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 			fprintf(stderr ,"MKLDNN Convolution get output layout FAIL......\n");
 		}
 		else{
-			lt_user_output = primitives->storage->data[CONV_LAYOUT_OUTPUT];
+			lt_user_output = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_OUTPUT];
 			fprintf(stderr ,"MKLDNN Convolution get output layout OK\n");
 		}
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
@@ -487,7 +487,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	real * buffer_forward_input =NULL;real *buffer_forward_filter=NULL;real *buffer_forward_bias=NULL;real * buffer_forward_output =NULL;
 	if(initOk == 0)
 	{
-		primitives->storage->data[CONV_LAYOUT_INPUT] = input->mkldnnLayout;
+		primitives->storage->data[CONV_LAYOUT_INPUT] = (long long)input->mkldnnLayout;
 		THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
 	}
 	m_conv_forward 		= (dnnPrimitive_t)(primitives->storage->data[FORWARD_INDEX]);
@@ -569,7 +569,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 			output->storage->data = buffer_forward_output;
 			output->storageOffset = 0;
 		}
-		output->mkldnnLayout = primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT];
+		output->mkldnnLayout = (long long)primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT];
 	}
 	else if(sizeof(real) == sizeof(double))
 	{
@@ -624,7 +624,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	int outW = gradOutput->size[3];
 	if(initOk == 0)
 	{
-		primitives->storage->data[CONV_LAYOUT_OUTPUT] = gradOutput->mkldnnLayout;
+		primitives->storage->data[CONV_LAYOUT_OUTPUT] = (long long)gradOutput->mkldnnLayout;
 		THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
 	}
 
@@ -697,7 +697,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 		if(cv_bwddata_input){
 			gradInput->storage->data = buffer_bwddata_input;
 		}
-		gradInput->mkldnnLayout = primitives->storage->data[CONV_LAYOUT_BWDDATA_INPUT];
+		gradInput->mkldnnLayout = (long long)primitives->storage->data[CONV_LAYOUT_BWDDATA_INPUT];
 
 	}
 	else if(sizeof(real) == sizeof(double))

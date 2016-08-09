@@ -45,7 +45,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 		fprintf(stderr ,"MKLDNN POOLING get input layout FAIL......\n");
 	}
 	else{
-		lt_user_input = primitives->storage->data[POOLING_LAYOUT_INPUT];
+		lt_user_input = (dnnLayout_t)primitives->storage->data[POOLING_LAYOUT_INPUT];
 		fprintf(stderr ,"MKLDNN POOLING get input layout OK\n");
 	}
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides) , err );
@@ -135,7 +135,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 		fprintf(stderr ,"MKLDNN POOLING get output layout FAIL......\n");
 	}
 	else{
-		lt_user_output = primitives->storage->data[POOLING_LAYOUT_OUTPUT];
+		lt_user_output = (dnnLayout_t)primitives->storage->data[POOLING_LAYOUT_OUTPUT];
 		fprintf(stderr ,"MKLDNN POOLING get input layout OK\n");
 	}
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
@@ -266,7 +266,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 
 	if(initOk == 0)
 	{
-		primitives->storage->data[POOLING_LAYOUT_INPUT] = input->mkldnnLayout;
+		primitives->storage->data[POOLING_LAYOUT_INPUT] = (long long)input->mkldnnLayout;
 		THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
 	}
 
@@ -277,9 +277,9 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 	dnnPrimitive_t pool1 	= (dnnPrimitive_t) (primitives->storage->data[POOLING_FORWARD]);
 	cv_forward_input 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_FORWARD_INPUT]);
 	cv_forward_output 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_FORWARD_OUTPUT]);
-	buffer_forward_input	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_INPUT]);
-	buffer_forward_output	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_OUTPUT]);
-	buffer_forward_workspace= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_WORKSPACE]);
+	buffer_forward_input	= (real *) (primitives->storage->data[BUFFER_POOLING_FORWARD_INPUT]);
+	buffer_forward_output	= (real *) (primitives->storage->data[BUFFER_POOLING_FORWARD_OUTPUT]);
+	buffer_forward_workspace= (real *) (primitives->storage->data[BUFFER_POOLING_FORWARD_WORKSPACE]);
 
 
 	real * resPool1[dnnResourceNumber] = {0};
@@ -298,7 +298,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 		output->storage->data = resPool1[dnnResourceDst];
 		output->storageOffset = 0;
 	}
-	output->mkldnnLayout = primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT];	
+	output->mkldnnLayout = (long long)primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT];	
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
@@ -393,15 +393,15 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 
 	if(initOk == 0)
 	{
-		primitives->storage->data[POOLING_LAYOUT_OUTPUT] = gradOutput->mkldnnLayout;
+		primitives->storage->data[POOLING_LAYOUT_OUTPUT] = (long long)gradOutput->mkldnnLayout;
 		THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
 	}
 
 	cv_backward_input 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_BACKWARD_INPUT]);
 	cv_backward_output 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_BACKWARD_OUTPUT]);
-	buffer_backward_input	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_BACKWARD_INPUT]);
-	buffer_backward_output	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_BACKWARD_OUTPUT]);
-	buffer_backward_workspace= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_BACKWARD_WORKSPACE]);
+	buffer_backward_input	= (real *) (primitives->storage->data[BUFFER_POOLING_BACKWARD_INPUT]);
+	buffer_backward_output	= (real *) (primitives->storage->data[BUFFER_POOLING_BACKWARD_OUTPUT]);
+	buffer_backward_workspace= (real *) (primitives->storage->data[BUFFER_POOLING_BACKWARD_WORKSPACE]);
 
 
 	real * resPool1[dnnResourceNumber] = {0};
@@ -411,7 +411,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 
 	if(cv_backward_output)
 	{
-		fprintf(stderr, "	Maxpooling backward output conversion... \n");
+		fprintf(stderr, "	Maxpooling backward output conversion\n");
 		resPool1[dnnResourceDiffDst] = buffer_backward_output;
 		CHECK_ERR( dnnConversionExecute_F32(cv_backward_output, gradOutput_data, resPool1[dnnResourceDiffDst]), err );
 	}
@@ -421,11 +421,11 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 
 	CHECK_ERR( dnnExecute_F32(pool_bwd, (void*)resPool1), err );
 	if(cv_backward_input){
-		fprintf(stderr, "	Maxpooling backward input conversion... \n");
+		fprintf(stderr, "	Maxpooling backward input conversion \n");
 		gradInput->storage->data = buffer_backward_input;
 		gradInput->storageOffset = 0;
 	}
-	gradInput->mkldnnLayout = primitives->storage->data[POOLING_LAYOUT_BACKWARD_INPUT];
+	gradInput->mkldnnLayout = (long long)primitives->storage->data[POOLING_LAYOUT_BACKWARD_INPUT];
 
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);

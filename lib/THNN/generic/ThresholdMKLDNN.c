@@ -32,7 +32,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(
 		fprintf(stderr ,"MKLDNN RELU get input layout FAIL......\n");
 	}
 	else{
-		lt_relu_input = primitives->storage->data[RELU_LAYOUT_INPUT];
+		lt_relu_input = (dnnLayout_t)primitives->storage->data[RELU_LAYOUT_INPUT];
 		fprintf(stderr ,"MKLDNN RELU get input layout OK\n");
 	}
 
@@ -86,7 +86,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 		fprintf(stderr ,"MKLDNN RELU get output layout FAIL......\n");
 	}
 	else{
-		lt_user_output = primitives->storage->data[RELU_LAYOUT_OUTPUT];
+		lt_user_output = (dnnLayout_t)primitives->storage->data[RELU_LAYOUT_OUTPUT];
 		fprintf(stderr ,"MKLDNN RELU get output layout OK\n");
 	}
 
@@ -138,7 +138,7 @@ void THNN_(Threshold_MKLDNN_updateOutput)(
 	
 	if(initOk == 0)
 	{
-		primitives->storage->data[RELU_LAYOUT_INPUT] = input->mkldnnLayout;
+		primitives->storage->data[RELU_LAYOUT_INPUT] = (long long)input->mkldnnLayout;
 		THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(primitives,N,inC,inH,inW,outC,outH,outW,threshold);
 	}
 	
@@ -185,7 +185,7 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	
 	if(initOk == 0)
 	{
-		primitives->storage->data[RELU_LAYOUT_OUTPUT] = gradOutput->mkldnnLayout;
+		primitives->storage->data[RELU_LAYOUT_OUTPUT] = (long long)gradOutput->mkldnnLayout;
 		THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(primitives,N,inC,inH,inW,outC,outH,outW,threshold);
 	}
 
@@ -197,11 +197,11 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	resRelu1[dnnResourceDiffSrc] 	= THTensor_(data)(gradInput);
 	resRelu1[dnnResourceDiffDst] 	= THTensor_(data)(gradOutput);
 
-	cv_backward_output = primitives->storage->data[CV_RELU_BACKWARD_OUTPUT];
-	buffer_backward_output = primitives->storage->data[BUFFER_RELU_BACKWARD_OUTPUT];
+	cv_backward_output = (dnnPrimitive_t)primitives->storage->data[CV_RELU_BACKWARD_OUTPUT];
+	buffer_backward_output = (real *)primitives->storage->data[BUFFER_RELU_BACKWARD_OUTPUT];
 	if(cv_backward_output)
 	{
-		fprintf(stderr, "	RELU backward output conversion...");
+		fprintf(stderr, "	RELU backward output conversion \n");
 		resRelu1[dnnResourceDiffDst] = buffer_backward_output;
 		CHECK_ERR( dnnConversionExecute_F32(cv_backward_output, THTensor_(data)(gradOutput), resRelu1[dnnResourceDiffDst]), err );
 	}
@@ -211,7 +211,7 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 		gradInput->storage->data = resRelu1[dnnResourceDiffSrc];
 		gradInput->storageOffset = 0;
 	}
-	gradInput->mkldnnLayout = primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT];
+	gradInput->mkldnnLayout = (long long)primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT];
 	
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);
