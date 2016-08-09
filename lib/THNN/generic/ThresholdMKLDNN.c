@@ -197,6 +197,7 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	resRelu1[dnnResourceDiffSrc] 	= THTensor_(data)(gradInput);
 	resRelu1[dnnResourceDiffDst] 	= THTensor_(data)(gradOutput);
 
+	cv_backward_output = primitives->storage->data[CV_RELU_BACKWARD_OUTPUT];
 	if(cv_backward_output)
 	{
 		fprintf(stderr, "	RELU backward output conversion...");

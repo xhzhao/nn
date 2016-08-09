@@ -614,6 +614,20 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 
 	dnnPrimitive_t cv_bwddata_input = NULL,cv_bwddata_filter = NULL,cv_bwddata_output = NULL;
 	real * buffer_bwddata_input = NULL;real * buffer_bwddata_filter = NULL;real * buffer_bwddata_output=NULL;
+	int N = input->size[0];
+	int inC = input->size[1];
+	int inH = input->size[2];
+	int inW = input->size[3];
+
+	int outC = gradOutput->size[1];
+	int outH = gradOutput->size[2];
+	int outW = gradOutput->size[3];
+	if(initOk == 0)
+	{
+		primitives->storage->data[CONV_LAYOUT_OUTPUT] = gradOutput->mkldnnLayout;
+		THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
+	}
+
 
 	THTensor_(transpose)(weight, weight, 0, 1);
 
@@ -631,19 +645,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	gettimeofday(&mid2,NULL);
 	THTensor_(zero)(gradInput);
 
-	int N = input->size[0];
-	int inC = input->size[1];
-	int inH = input->size[2];
-	int inW = input->size[3];
 
-	int outC = gradOutput->size[1];
-	int outH = gradOutput->size[2];
-	int outW = gradOutput->size[3];
-	if(initOk == 0)
-	{
-		primitives->storage->data[CONV_LAYOUT_OUTPUT] = gradOutput->mkldnnLayout;
-		THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
-	}
 
 #if LOG_ENABLE
 	gettimeofday(&mid3,NULL);
