@@ -120,7 +120,7 @@ function BN:updateOutput(input)
 	self.mkldnnInitOk = 1
    end
    if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(12)
+      self.dnnPrimitives = torch.LongTensor(13)
    end
 
    input = makeContiguous(self, input)
