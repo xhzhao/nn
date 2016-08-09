@@ -25,12 +25,10 @@ static void THNN_(BatchNormalization_MKLDNN_init_forward)(
 	if(primitives->storage->data[BN_LAYOUT_INPUT] == 0)
 	{
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
-		primitives->storage->data[BN_LAYOUT_OUTPUT] = lt_user_input;
 		fprintf(stderr ,"MKLDNN BN get input layout FAIL......\n");
 	}
 	else{
 		lt_user_input = primitives->storage->data[BN_LAYOUT_INPUT];
-		primitives->storage->data[BN_LAYOUT_OUTPUT] = primitives->storage->data[BN_LAYOUT_INPUT];
 		fprintf(stderr ,"MKLDNN BN get input layout OK\n");
 	}
 
@@ -81,12 +79,12 @@ static void THNN_(BatchNormalization_MKLDNN_init_backward)(
 	if(primitives->storage->data[BN_LAYOUT_OUTPUT] == 0)
 	{
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides) , err );
-		fprintf(stderr ,"MKLDNN BN get input layout FAIL......\n");
+		fprintf(stderr ,"MKLDNN BN get output layout FAIL......\n");
 	}
 	else{
 		lt_user_output = primitives->storage->data[BN_LAYOUT_OUTPUT];
 		primitives->storage->data[BN_LAYOUT_OUTPUT] = primitives->storage->data[BN_LAYOUT_OUTPUT];
-		fprintf(stderr ,"MKLDNN BN get input layout OK\n");
+		fprintf(stderr ,"MKLDNN BN get output layout OK\n");
 	}
 
 	dnnLayoutCreateFromPrimitive_F32(&lt_bn_backward_output, bn_backward, dnnResourceDiffDst);
@@ -143,7 +141,7 @@ void THNN_(BatchNormalization_MKLDNN_updateOutput)(
 
 	CHECK_ERR( dnnExecute_F32(bn_forward, (void*)BatchNorm_res), err );
 	output->mkldnnLayout = primitives->storage->data[BN_LAYOUT_FORWARD_OUTPUT];
-	output->storageOffset = 0;
+	//output->storageOffset = 0;
 	
 }
 
@@ -218,7 +216,7 @@ void THNN_(BatchNormalization_MKLDNN_backward)(
 		CHECK_ERR( dnnExecute_F32(bn_backward, (void*)BatchNorm_res), err );
 		//fprintf(stderr, "bn_backward exec done");
 		gradInput->mkldnnLayout = primitives->storage->data[BN_LAYOUT_BACKWARD_INPUT];
-		gradInput->storageOffset = 0;
+		//gradInput->storageOffset = 0;
 
 	}
 

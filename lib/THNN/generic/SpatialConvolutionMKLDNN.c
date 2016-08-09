@@ -567,9 +567,9 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 		if(cv_forward_output){
 			//release the original buffer, replace it with the internal buffer
 			output->storage->data = buffer_forward_output;
+			output->storageOffset = 0;
 		}
 		output->mkldnnLayout = primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT];
-		output->storageOffset = 0;
 	}
 	else if(sizeof(real) == sizeof(double))
 	{
@@ -666,11 +666,12 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	if(sizeof(real) == sizeof(float))
 	{
 		if(cv_bwddata_output){
+			fprintf(stderr, "	MKLDNN Convolution backward data: outPtr=0x%x, buffer_bwddata_output=0x%x,cv_bwddata_output=0x%x \n",outPtr,buffer_bwddata_output,cv_bwddata_output );
 			resConv[dnnResourceDiffDst] = buffer_bwddata_output;
 			convert_resources[dnnResourceFrom] = outPtr;
 			convert_resources[dnnResourceTo]   = buffer_bwddata_output;
 			CHECK_ERR( dnnExecute_F32(cv_bwddata_output,convert_resources), err );
-			//fprintf(stderr, "		convert 1 called. \n");
+			fprintf(stderr, "	MKLDNN Convolution backward data:	convert 1 done. \n");
 		}
 		
 		if(cv_bwddata_filter){
@@ -682,7 +683,8 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 		}
 
 		if(cv_bwddata_input){
-			resConv[dnnResourceDiffSrc] = buffer_bwddata_input;;
+			resConv[dnnResourceDiffSrc] = buffer_bwddata_input;
+			gradInput->storageOffset = 0;
 		}
 
 		
@@ -694,7 +696,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 			gradInput->storage->data = buffer_bwddata_input;
 		}
 		gradInput->mkldnnLayout = primitives->storage->data[CONV_LAYOUT_BWDDATA_INPUT];
-		gradInput->storageOffset = 0;
+
 	}
 	else if(sizeof(real) == sizeof(double))
 	{

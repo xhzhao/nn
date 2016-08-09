@@ -290,11 +290,14 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 
 	if(cv_forward_output){
 		resPool1[dnnResourceDst] = buffer_forward_output;
+		
 	}
 
 	CHECK_ERR( dnnExecute_F32(pool1, (void*)resPool1), err );
-	output->storage->data = resPool1[dnnResourceDst];
-	output->storageOffset = 0;
+	if(cv_forward_output){
+		output->storage->data = resPool1[dnnResourceDst];
+		output->storageOffset = 0;
+	}
 	output->mkldnnLayout = primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT];	
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);
@@ -420,8 +423,8 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 	if(cv_backward_input){
 		fprintf(stderr, "	Maxpooling backward input conversion... \n");
 		gradInput->storage->data = buffer_backward_input;
+		gradInput->storageOffset = 0;
 	}
-	gradInput->storageOffset = 0;
 	gradInput->mkldnnLayout = primitives->storage->data[POOLING_LAYOUT_BACKWARD_INPUT];
 
 #if LOG_ENABLE

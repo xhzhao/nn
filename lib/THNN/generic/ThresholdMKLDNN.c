@@ -149,8 +149,9 @@ void THNN_(Threshold_MKLDNN_updateOutput)(
 	resRelu1[dnnResourceDst] = outPtr;
 
 	CHECK_ERR( dnnExecute_F32(relu1, (void**)resRelu1), err );
-	output->storage->data = resRelu1[dnnResourceDst];
-	output->storageOffset = 0;
+
+	//output->storage->data = resRelu1[dnnResourceDst];
+	//output->storageOffset = 0;
 	output->mkldnnLayout = primitives->storage->data[RELU_LAYOUT_FORWARD_OUTPUT];
 #if LOG_ENABLE
 	fprintf(stderr, "MKLDNN Relu forward end \n");
@@ -203,8 +204,11 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 		CHECK_ERR( dnnConversionExecute_F32(cv_backward_output, THTensor_(data)(gradOutput), resRelu1[dnnResourceDiffDst]), err );
 	}
 	CHECK_ERR( dnnExecute_F32(relu1, (void**)resRelu1), err );
-	gradInput->storage->data = resRelu1[dnnResourceDiffSrc];
-	gradInput->storageOffset = 0;
+	if(cv_backward_output)
+	{
+		gradInput->storage->data = resRelu1[dnnResourceDiffSrc];
+		gradInput->storageOffset = 0;
+	}
 	gradInput->mkldnnLayout = primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT];
 	
 #if LOG_ENABLE
