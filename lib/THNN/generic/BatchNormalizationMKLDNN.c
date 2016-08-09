@@ -166,7 +166,7 @@ void THNN_(BatchNormalization_MKLDNN_backward)(
 	real * buffer_forward_scaleshift = primitives->storage->data[BUFFER_BN_FORWARD_SCALESHIFT];
 
 
-	if(gradWeight && gradBias)
+	if(gradInput == 0)
 	{
 		void* BatchNormScaleshift_res[dnnResourceNumber];
 		BatchNormScaleshift_res[dnnResourceSrc] = THTensor_(data)(input);
