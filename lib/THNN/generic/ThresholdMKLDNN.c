@@ -73,7 +73,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 {
 	dnnError_t err;
 	dnnPrimitive_t relu_backward = (dnnPrimitive_t) (primitives->storage->data[RELU_BACKWARD]);
-	dnnLayout_t lt_relu_diff_out=NULL,lt_user_output;
+	dnnLayout_t lt_relu_diff_out=NULL,lt_relu_diff_src=NULL,lt_user_output=NULL;
 	dnnPrimitive_t cv_backward_output = NULL;real * buffer_backward_output = NULL;
 #if NEW_INTERFACE
 	/*for new interface*/
@@ -93,12 +93,14 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 	}
 
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_out, relu_backward, dnnResourceDiffDst), err );
+	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_src, relu_backward, dnnResourceDiffSrc), err );
+
 	//backward conversion init
 	CHECK_ERR( THNN_(init_conversion)(&cv_backward_output, &buffer_backward_output, lt_relu_diff_out, lt_user_output), err );
 
 	primitives->storage->data[CV_RELU_BACKWARD_OUTPUT] = (long long)cv_backward_output;
 	primitives->storage->data[BUFFER_RELU_BACKWARD_OUTPUT] = (long long)buffer_backward_output;
-	primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT] = (long long)lt_relu_diff_out;
+	primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT] = (long long)lt_relu_diff_src;
 }
 
 
