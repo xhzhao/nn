@@ -35,14 +35,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(
 		lt_relu_input = (dnnLayout_t)primitives->storage->data[RELU_LAYOUT_INPUT];
 		fprintf(stderr ,"MKLDNN RELU get input layout OK\n");
 	}
-
-	size_t outputSize[dimension] = 	{outW,outH,outC,N};
-	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
-	CHECK_ERR( dnnLayoutCreate_F32(&lt_relu_diff_out, dimension, outputSize, outputStrides) , err );
-
 #if NEW_INTERFACE
 	CHECK_ERR( dnnReLUCreateForward_F32(&relu_forward, attributes, lt_relu_input, threshold), err );
-	CHECK_ERR( dnnReLUCreateBackward_F32(&relu_backward, attributes, lt_relu_diff_out, lt_relu_input, threshold), err );
+	CHECK_ERR( dnnReLUCreateBackward_F32(&relu_backward, attributes, lt_relu_input, lt_relu_input, threshold), err );
 #else
 	CHECK_ERR( dnnReLUCreateForward_F32(&relu1, lt_relu_input, threshold), err );
 	CHECK_ERR( dnnReLUCreateBackward_F32(&relu1,lt_relu_diff_out, lt_relu_input, threshold), err );
@@ -87,11 +82,19 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 	}
 	else{
 		lt_user_output = (dnnLayout_t)primitives->storage->data[RELU_LAYOUT_OUTPUT];
+
 		fprintf(stderr ,"MKLDNN RELU get output layout OK\n");
 	}
+	dnnLayout_t lt_relu_forward_output = (dnnLayout_t)primitives->storage->data[RELU_LAYOUT_FORWARD_OUTPUT];
 
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_out, relu_backward, dnnResourceDiffDst), err );
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_src, relu_backward, dnnResourceDiffSrc), err );
+
+	int check1 = dnnLayoutCompare_F32(lt_user_output, lt_relu_diff_out);
+	int check2 = dnnLayoutCompare_F32(lt_user_output, lt_relu_forward_output);
+	int check3 = dnnLayoutCompare_F32(lt_relu_forward_output, lt_relu_diff_out);
+	int check4 = dnnLayoutCompare_F32(primitives->storage->data[RELU_LAYOUT_INPUT], lt_relu_diff_src);
+	fprintf(stderr, "	MKLDNN RELU backward data, check1=%d,check2=%d,check3=%d, check4=%d\n", check1,check2,check3,check4);
 
 	//backward conversion init
 	CHECK_ERR( THNN_(init_conversion)(&cv_backward_output, &buffer_backward_output, lt_relu_diff_out, lt_user_output), err );

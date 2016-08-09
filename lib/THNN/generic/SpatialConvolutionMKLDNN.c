@@ -316,6 +316,13 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 			CHECK_ERR( dnnConversionCreate_F32(&cv_bwddata_input, lt_bwddata_conv_input, lt_user_input), err );
 			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_bwddata_input), lt_bwddata_conv_input), err );
 		}
+		dnnLayout_t lt_conv_forward_output = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT];
+		int check1 = dnnLayoutCompare_F32(lt_user_output, lt_bwddata_conv_output);
+		int check2 = dnnLayoutCompare_F32(lt_user_output, lt_conv_forward_output);
+		int check3 = dnnLayoutCompare_F32(lt_conv_forward_output, lt_bwddata_conv_output);
+		int check4 = dnnLayoutCompare_F32(primitives->storage->data[CONV_LAYOUT_INPUT], lt_bwddata_conv_input);
+		fprintf(stderr, "	MKLDNN Convolution backward data, check1=%d,check2=%d,check3=%d, check4=%d\n", check1,check2,check3,check4);
+
 
 
 	}
