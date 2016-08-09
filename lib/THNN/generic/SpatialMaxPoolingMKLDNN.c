@@ -72,7 +72,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 
 	if(!dnnLayoutCompare_F32(lt_user_output, lt_pool_forward_output))
 	{
-		fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
+		//fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
 		CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, lt_pool_forward_output, lt_user_output), err );
 		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_pool_forward_output), err );
 	}

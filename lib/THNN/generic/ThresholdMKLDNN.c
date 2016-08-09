@@ -29,12 +29,10 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(
 	if(primitives->storage->data[RELU_LAYOUT_INPUT] == 0)
 	{
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_relu_input, dimension, inputSize, inputStrides) , err );
-		primitives->storage->data[RELU_LAYOUT_OUTPUT] = lt_relu_input;
 		fprintf(stderr ,"MKLDNN RELU get input layout FAIL......\n");
 	}
 	else{
 		lt_relu_input = primitives->storage->data[RELU_LAYOUT_INPUT];
-		primitives->storage->data[RELU_LAYOUT_OUTPUT] = primitives->storage->data[RELU_LAYOUT_INPUT];
 		fprintf(stderr ,"MKLDNN RELU get input layout OK\n");
 	}
 

@@ -83,7 +83,6 @@ static void THNN_(BatchNormalization_MKLDNN_init_backward)(
 	}
 	else{
 		lt_user_output = primitives->storage->data[BN_LAYOUT_OUTPUT];
-		primitives->storage->data[BN_LAYOUT_OUTPUT] = primitives->storage->data[BN_LAYOUT_OUTPUT];
 		fprintf(stderr ,"MKLDNN BN get output layout OK\n");
 	}
 
