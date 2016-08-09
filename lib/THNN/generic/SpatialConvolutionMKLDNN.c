@@ -167,8 +167,6 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 	CHECK_ERR( dnnPrimitiveAttributesCreate_F32(&attributes), err );
 #endif
 /**/
-
-
 	if(sizeof(real) == sizeof(float))
 	{
 		if(primitives->storage->data[CONV_LAYOUT_INPUT] == 0)
@@ -199,6 +197,12 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 		CHECK_ERR( THNN_(init_conversion)(&cv_forward_input, 	&buffer_forward_input, 	lt_forward_conv_input, 	lt_user_input) , err );
 		CHECK_ERR( THNN_(init_conversion)(&cv_forward_filter, 	&buffer_forward_filter, lt_forward_conv_filter, lt_user_filter), err );
 		CHECK_ERR( THNN_(init_conversion)(&cv_forward_bias, 	&buffer_forward_bias, 	lt_forward_conv_bias, 	lt_user_bias), err );
+
+		if(!dnnLayoutCompare_F32(lt_forward_conv_output, lt_user_output))
+		{
+			CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, 	lt_forward_conv_output, lt_user_output), err );
+			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_forward_conv_output), err );
+		}
 	}
 	else if(sizeof(real) == sizeof(double))
 	{
@@ -297,6 +301,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 		}
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 
 		m_conv_bwd_data = (dnnPrimitive_t) (primitives->storage->data[BWD_DATA_INDEX]);
 		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwddata_conv_input, m_conv_bwd_data, dnnResourceDiffSrc) , err );
@@ -305,6 +310,14 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 
 		CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_filter, 	&buffer_bwddata_filter, lt_bwddata_conv_filter, lt_user_filter) , err );
 		CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_output, 	&buffer_bwddata_output, lt_bwddata_conv_output, lt_user_output) , err );
+		//init backward data conversion:
+		if(!dnnLayoutCompare_F32(lt_bwddata_conv_input, lt_user_input))
+		{
+			CHECK_ERR( dnnConversionCreate_F32(&cv_bwddata_input, lt_bwddata_conv_input, lt_user_input), err );
+			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_bwddata_input), lt_bwddata_conv_input), err );
+		}
+
+
 	}
 	else if(sizeof(real) == sizeof(double))
 	{
@@ -556,6 +569,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 			output->storage->data = buffer_forward_output;
 		}
 		output->mkldnnLayout = primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT];
+		output->storageOffset = 0;
 	}
 	else if(sizeof(real) == sizeof(double))
 	{
@@ -680,8 +694,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 			gradInput->storage->data = buffer_bwddata_input;
 		}
 		gradInput->mkldnnLayout = primitives->storage->data[CONV_LAYOUT_BWDDATA_INPUT];
-
-
+		gradInput->storageOffset = 0;
 	}
 	else if(sizeof(real) == sizeof(double))
 	{

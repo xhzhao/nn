@@ -143,6 +143,7 @@ void THNN_(BatchNormalization_MKLDNN_updateOutput)(
 
 	CHECK_ERR( dnnExecute_F32(bn_forward, (void*)BatchNorm_res), err );
 	output->mkldnnLayout = primitives->storage->data[BN_LAYOUT_FORWARD_OUTPUT];
+	output->storageOffset = 0;
 	
 }
 
@@ -209,7 +210,7 @@ void THNN_(BatchNormalization_MKLDNN_backward)(
 
 		if(cv_backward_output)
 		{
-			fprintf(stderr, "	Relu backward output conversion... \n");
+			fprintf(stderr, "	BN backward output conversion... \n");
 			BatchNorm_res[dnnResourceDiffDst] = buffer_backward_output;
 			CHECK_ERR( dnnConversionExecute_F32(cv_backward_output, THTensor_(data)(gradOutput), BatchNorm_res[dnnResourceDiffDst]), err );
 		}
@@ -217,6 +218,7 @@ void THNN_(BatchNormalization_MKLDNN_backward)(
 		CHECK_ERR( dnnExecute_F32(bn_backward, (void*)BatchNorm_res), err );
 		//fprintf(stderr, "bn_backward exec done");
 		gradInput->mkldnnLayout = primitives->storage->data[BN_LAYOUT_BACKWARD_INPUT];
+		gradInput->storageOffset = 0;
 
 	}
 

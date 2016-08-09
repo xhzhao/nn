@@ -48,6 +48,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 		lt_user_input = primitives->storage->data[POOLING_LAYOUT_INPUT];
 		fprintf(stderr ,"MKLDNN POOLING get input layout OK\n");
 	}
+	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides) , err );
 #if NEW_INTERFACE
 	/*for new interface*/
 	dnnPrimitiveAttributes_t attributes = NULL;
@@ -67,6 +68,14 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_forward_output, pool1, dnnResourceDst), err );
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_forward_workspace, pool1, dnnResourceWorkspace), err );
 	CHECK_ERR( dnnAllocateBuffer_F32((void**)&buffer_forward_workspace, lt_pool_forward_workspace) , err );
+
+
+	if(!dnnLayoutCompare_F32(lt_user_output, lt_pool_forward_output))
+	{
+		fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
+		CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, lt_pool_forward_output, lt_user_output), err );
+		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_pool_forward_output), err );
+	}
 
 	//save the dnnPrimitive to THTensor(long int array)
 	primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT] = lt_pool_forward_output;
@@ -107,8 +116,15 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,dH=%d,dW=%d,padH=%d,padW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW );
 #endif
 	dnnError_t err;
+	int inputOffset[dimension - 2 ] = { 0, 0 };
+	size_t inputSize[dimension] = 	{inW,inH,inC,N};
+	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
+
+	size_t kernelSize[2] = { kH, kW };
+	size_t kernelStride[2] = { dH, dW };
+	int pad[dimension-2] = 	{-padW,-padH};
 
 	real * resPool1[dnnResourceNumber] = {0};
 	dnnLayout_t lt_user_input = NULL,lt_user_output=NULL;
@@ -122,6 +138,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 		lt_user_output = primitives->storage->data[POOLING_LAYOUT_OUTPUT];
 		fprintf(stderr ,"MKLDNN POOLING get input layout OK\n");
 	}
+	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 
 #if NEW_INTERFACE
 	/*for new interface*/
@@ -139,6 +156,11 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 
 	//backward conversion init
 	CHECK_ERR( THNN_(init_conversion)(&cv_backward_output, &buffer_backward_output, lt_pool_backward_output, lt_user_output), err );
+	if(!dnnLayoutCompare_F32(lt_user_input, lt_pool_backward_input))
+	{
+		CHECK_ERR( dnnConversionCreate_F32(&cv_backward_input, lt_pool_backward_input, lt_user_input), err );
+		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_backward_input), lt_pool_backward_input), err );
+	}
 
 	//save the dnnPrimitive to THTensor(long int array)
 	primitives->storage->data[POOLING_LAYOUT_BACKWARD_INPUT] = (long long)lt_pool_backward_input;
@@ -272,6 +294,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 
 	CHECK_ERR( dnnExecute_F32(pool1, (void*)resPool1), err );
 	output->storage->data = resPool1[dnnResourceDst];
+	output->storageOffset = 0;
 	output->mkldnnLayout = primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT];	
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);
@@ -398,7 +421,9 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 		fprintf(stderr, "	Maxpooling backward input conversion... \n");
 		gradInput->storage->data = buffer_backward_input;
 	}
+	gradInput->storageOffset = 0;
 	gradInput->mkldnnLayout = primitives->storage->data[POOLING_LAYOUT_BACKWARD_INPUT];
+
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
