@@ -78,7 +78,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 	}
 
 	//save the dnnPrimitive to THTensor(long int array)
-	primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT] = lt_pool_forward_output;
+	primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT] = (long long)lt_pool_forward_output;
 	primitives->storage->data[POOLING_FORWARD] = (long long)pool1;
 	primitives->storage->data[POOLING_BACKWARD] = (long long)pool_bwd;
 	primitives->storage->data[CV_POOLING_FORWARD_INPUT] = (long long)cv_forward_input;

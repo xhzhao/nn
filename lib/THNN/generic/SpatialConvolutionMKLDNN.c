@@ -94,7 +94,7 @@ void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
 	dnnLayout_t lt_user_input = NULL;
-	dnnLayout_t mkldnnLayout = input->mkldnnLayout ;
+	dnnLayout_t mkldnnLayout = (dnnLayout_t)input->mkldnnLayout ;
 	dnnPrimitive_t cv_BacktoNCHW = NULL;
 	real * buffer = NULL;
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
