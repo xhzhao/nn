@@ -390,15 +390,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwdfilter)(
 
 	if(sizeof(real) == sizeof(float))
 	{
-		if(primitives->storage->data[CONV_LAYOUT_INPUT] == 0)
-		{
-			CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
-			fprintf(stderr ,"MKLDNN Convolution fail to get input layout \n");
-		}
-		else{
-			lt_user_input = primitives->storage->data[CONV_LAYOUT_INPUT];
-			fprintf(stderr ,"MKLDNN Convolution get valid input layout \n");
-		}
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
