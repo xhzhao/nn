@@ -172,11 +172,15 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 		if(primitives->storage->data[CONV_LAYOUT_INPUT] == 0)
 		{
 			CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution get input layout FAIL......\n");
+#endif
 		}
 		else{
 			lt_user_input = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_INPUT];
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution get input layout OK\n");
+#endif
 		}
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
@@ -294,11 +298,15 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 		if(primitives->storage->data[CONV_LAYOUT_OUTPUT] == 0)
 		{
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution get output layout FAIL......\n");
+#endif
 		}
 		else{
 			lt_user_output = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_OUTPUT];
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution get output layout OK\n");
+#endif
 		}
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
@@ -317,13 +325,14 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 			CHECK_ERR( dnnConversionCreate_F32(&cv_bwddata_input, lt_bwddata_conv_input, lt_user_input), err );
 			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_bwddata_input), lt_bwddata_conv_input), err );
 		}
+#if CONVERSION_LOG
 		dnnLayout_t lt_conv_forward_output = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT];
 		int check1 = dnnLayoutCompare_F32(lt_user_output, lt_bwddata_conv_output);
 		int check2 = dnnLayoutCompare_F32(lt_user_output, lt_conv_forward_output);
 		int check3 = dnnLayoutCompare_F32(lt_conv_forward_output, lt_bwddata_conv_output);
 		int check4 = dnnLayoutCompare_F32(primitives->storage->data[CONV_LAYOUT_INPUT], lt_bwddata_conv_input);
 		fprintf(stderr, "	MKLDNN Convolution backward data, check1=%d,check2=%d,check3=%d, check4=%d\n", check1,check2,check3,check4);
-
+#endif
 	}
 	else if(sizeof(real) == sizeof(double))
 	{
@@ -408,22 +417,31 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwdfilter)(
 		//check the src and diffdst layout
 		if(primitives->storage->data[CONV_LAYOUT_INPUT] == 0)
 		{
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution bwdfilter get input layout FAIL......\n");
+#endif
 			CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 		}
 		else
 		{
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution bwdfilter get input layout OK\n");
+#endif
 			lt_user_input = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_INPUT];
 		}
 		if(primitives->storage->data[CONV_LAYOUT_OUTPUT] == 0)
 		{
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution bwdfilter get output layout FAIL......\n");
+#endif
 			CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
 		}
 		else
 		{
+
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution bwdfilter get output layout OK\n");
+#endif
 			lt_user_output = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_OUTPUT];
 		}
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
@@ -567,7 +585,9 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 			convert_resources[dnnResourceFrom] = inPtr;
 			convert_resources[dnnResourceTo]   = buffer_forward_input;
 			CHECK_ERR( dnnExecute_F32(cv_forward_input, convert_resources), err );
+#if CONVERSION_LOG
 			fprintf(stderr, "SpatialConvolutionMM_MKLDNN_forward conversion input \n");
+#endif
 			//optimize for input conversion, save the new layout , to avoid conversion in backward filter
 		//	input->storage->data = buffer_forward_input;
 		//	input->storageOffset = 0;
@@ -579,7 +599,9 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 			convert_resources[dnnResourceFrom] = filterPtr;
 			convert_resources[dnnResourceTo]   = buffer_forward_filter;
 			CHECK_ERR( dnnExecute_F32(cv_forward_filter, convert_resources), err );
+#if CONVERSION_LOG
 			fprintf(stderr, "SpatialConvolutionMM_MKLDNN_forward conversion filter \n");
+#endif
 		} 
 		
 		if(cv_forward_bias){
@@ -587,7 +609,9 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 			convert_resources[dnnResourceFrom] = biasPtr;
 			convert_resources[dnnResourceTo]   = buffer_forward_bias;
 			CHECK_ERR( dnnExecute_F32(cv_forward_bias,convert_resources), err );
+#if CONVERSION_LOG
 			fprintf(stderr, "SpatialConvolutionMM_MKLDNN_forward conversion bias \n");
+#endif
 		} 
 
 		if(cv_forward_output){
@@ -702,12 +726,12 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	if(sizeof(real) == sizeof(float))
 	{
 		if(cv_bwddata_output){
-			fprintf(stderr, "	MKLDNN Convolution backward data: outPtr=0x%x, buffer_bwddata_output=0x%x,cv_bwddata_output=0x%x \n",outPtr,buffer_bwddata_output,cv_bwddata_output );
+			//fprintf(stderr, "	MKLDNN Convolution backward data: outPtr=0x%x, buffer_bwddata_output=0x%x,cv_bwddata_output=0x%x \n",outPtr,buffer_bwddata_output,cv_bwddata_output );
 			resConv[dnnResourceDiffDst] = buffer_bwddata_output;
 			convert_resources[dnnResourceFrom] = outPtr;
 			convert_resources[dnnResourceTo]   = buffer_bwddata_output;
 			CHECK_ERR( dnnExecute_F32(cv_bwddata_output,convert_resources), err );
-			fprintf(stderr, "	MKLDNN Convolution backward data:	convert 1 done. \n");
+			//fprintf(stderr, "	MKLDNN Convolution backward data:	convert 1 done. \n");
 		}
 		
 		if(cv_bwddata_filter){
@@ -841,14 +865,18 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
 		//fprintf(stderr, "		buf1=0x%x, buf2=0x%x, buf3=0x%x\n",newInPtr,newFilterPtr,newOutPtr);
 
 		if(cv_bwdfilter_input){
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution bwdfilter input conversion\n");
+#endif
 			resConv[dnnResourceSrc] = buffer_bwdfilter_input;
 			convert_resources[dnnResourceFrom] = inPtr;
 			convert_resources[dnnResourceTo]   = buffer_bwdfilter_input;
 			CHECK_ERR( dnnExecute_F32(cv_bwdfilter_input, convert_resources), err );
 		}
 		if(cv_bwdfilter_output){
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution bwdfilter output conversion\n");
+#endif
 			resConv[dnnResourceDiffDst] = buffer_bwdfilter_output;
 			convert_resources[dnnResourceFrom] = outPtr;
 			convert_resources[dnnResourceTo]   = buffer_bwdfilter_output;
@@ -864,7 +892,9 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
 		gettimeofday(&convert2,NULL);
 	
 		if(cv_bwdfilter_filter){
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution bwdfilter filter conversion\n");
+#endif
 			convert_resources[dnnResourceFrom] = buffer_bwdfilter_filter;
 			convert_resources[dnnResourceTo]   = filterPtr;
 			CHECK_ERR( dnnExecute_F32(cv_bwdfilter_filter, convert_resources), err );
