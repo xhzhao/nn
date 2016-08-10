@@ -136,7 +136,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 	}
 	else{
 		lt_user_output = (dnnLayout_t)primitives->storage->data[POOLING_LAYOUT_OUTPUT];
-		fprintf(stderr ,"MKLDNN POOLING get input layout OK\n");
+		fprintf(stderr ,"MKLDNN POOLING get output layout OK\n");
 	}
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 
@@ -421,7 +421,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 
 	CHECK_ERR( dnnExecute_F32(pool_bwd, (void*)resPool1), err );
 	if(cv_backward_input){
-		fprintf(stderr, "	Maxpooling backward input conversion \n");
+		//fprintf(stderr, "	Maxpooling backward input conversion \n");
 		gradInput->storage->data = buffer_backward_input;
 		gradInput->storageOffset = 0;
 	}
