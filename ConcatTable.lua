@@ -21,7 +21,7 @@ function ConcatTable:updateOutput(input)
 
    for i=1,#self.modules do
       self.output[i] = self:rethrowErrors(self.modules[i], i, 'updateOutput', input)
-      self:CheckOutputLayout(currentOutput)
+      self:CheckOutputLayout(self.output[i])
    end
 
    if self.timerEnable then
