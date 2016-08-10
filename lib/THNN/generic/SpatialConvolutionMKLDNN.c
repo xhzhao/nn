@@ -203,7 +203,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 			CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, 	lt_forward_conv_output, lt_user_output), err );
 			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_forward_conv_output), err );
 		}
-		primitives->storage->data[CONV_LAYOUT_INPUT] = lt_forward_conv_input;
+		//primitives->storage->data[CONV_LAYOUT_INPUT] = lt_forward_conv_input;
 	}
 	else if(sizeof(real) == sizeof(double))
 	{
@@ -569,9 +569,9 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 			CHECK_ERR( dnnExecute_F32(cv_forward_input, convert_resources), err );
 			fprintf(stderr, "SpatialConvolutionMM_MKLDNN_forward conversion input \n");
 			//optimize for input conversion, save the new layout , to avoid conversion in backward filter
-			input->storage->data = buffer_forward_input;
-			input->storageOffset = 0;
-			input->mkldnnLayout = primitives->storage->data[CONV_LAYOUT_INPUT];
+		//	input->storage->data = buffer_forward_input;
+		//	input->storageOffset = 0;
+		//	input->mkldnnLayout = primitives->storage->data[CONV_LAYOUT_INPUT];
 		}
 		
 		if(cv_forward_filter){
