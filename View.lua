@@ -75,6 +75,7 @@ local function batchsize(input, size, numInputDims, numElements)
 end
 
 function View:updateOutput(input)
+   self:CheckInputLayout(input)
    self.output = self.output or input.new()
    local bsz = batchsize(input, self.size, self.numInputDims, self.numElements)
    if bsz then

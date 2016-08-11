@@ -4,7 +4,24 @@ function Module:__init()
    self.gradInput = torch.Tensor()
    self.output = torch.Tensor()
    self._type = self.output:type()
+   self.engine = 0 -- 0: default, 1: mkldnn
 end
+
+function Module:setEngine(engineType)
+   self.engine = engineType
+   return
+end
+function Module:getEngine()
+   return self.engine
+end
+function Module:CheckInputLayout(input)
+   if self.engine == 0 and input:cdata().mkldnnLayout ~= 0 then
+      print("Module:convertBackToNCHW")
+      input.THNN.MKLDNN_ConvertLayoutBackToNCHW(input:cdata())
+   end
+   return 
+end
+
 
 function Module:parameters()
    if self.weight and self.bias then
@@ -23,6 +40,10 @@ function Module:updateOutput(input)
 end
 
 function Module:forward(input)
+   print("forward called, self.engine = ", self.engine )
+   if self.engine == 0  then
+      self:CheckInputLayout(input)
+   end
    return self:updateOutput(input)
 end
 

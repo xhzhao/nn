@@ -55,11 +55,13 @@ function BN:__init(nOutput, eps, momentum, affine)
 
    -- xhzhao add:
    self.mkldnnInitOk = 0
-   self.compare = sys.compare
-   self.timerEnable = sys.timerEnable
+   self.initStep = 0
+   self.compare = sys.compare or false
+   self.timerEnable = sys.timerEnable or false
    self.timeForward = 0
    self.timeBackward = 0
    self.cnt = 0
+   self:setEngine(1)
 
 
    if self.affine then
@@ -109,12 +111,16 @@ end
 
 function BN:updateOutput(input)
    self:checkInputDim(input)
-
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(12)
-   end
    if self.timerEnable then
    	startTime = sys.clock()
+   end
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
+   end
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(13)
    end
 
    input = makeContiguous(self, input)
@@ -178,7 +184,6 @@ function BN:updateOutput(input)
 	self.timeBackward = 0
 	self.cnt = self.cnt + 1
    end
-
    return self.output
 end
 
@@ -232,7 +237,7 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
 	      self.train,
 	      scale,
 	      self.eps,
-	      self.dnnPrimitives:cdata())
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk)
 	   input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), gradInput:cdata(), outSize,11)
 	else
 
@@ -277,7 +282,7 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
               self.train,
               scale,
               self.eps,
-              self.dnnPrimitives:cdata())
+              self.dnnPrimitives:cdata(),self.mkldnnInitOk)
         else
            input.THNN.BatchNormalization_backward(
               input:cdata(),
@@ -300,8 +305,6 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
    if self.timerEnable then
 	self.timeBackward = self.timeBackward + (sys.clock() - startTime)
    end
-
-
    return self.gradInput
 end
 

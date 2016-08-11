@@ -20,6 +20,7 @@ function Concat:updateOutput(input)
    local outs = {}
    for i=1,#self.modules do
       local currentOutput = self:rethrowErrors(self.modules[i], i, 'updateOutput', input)
+      self:CheckOutputLayout(currentOutput)
       outs[i] = currentOutput
       if i == 1 then
          self.size:resize(currentOutput:dim()):copy(currentOutput:size())

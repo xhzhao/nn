@@ -15,11 +15,13 @@ function SpatialMaxPooling:__init(kW, kH, dW, dH, padW, padH)
    self.padH = padH or 0
 
    self.mkldnnInitOk = 0
-   self.compare = sys.compare
-   self.timerEnable = sys.timerEnable
+   self.initStep = 0
+   self.compare = sys.compare or false
+   self.timerEnable = sys.timerEnable or false
    self.timeForward = 0
    self.timeBackward = 0
    self.cnt = 0
+   self:setEngine(1)
 
 
    self.ceil_mode = false
@@ -37,11 +39,17 @@ function SpatialMaxPooling:floor()
 end
 
 function SpatialMaxPooling:updateOutput(input)
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(12)
-   end
+
    if self.timerEnable then
 	startTime = sys.clock()
+   end
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
+   end
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(16)
    end
    self.indices = self.indices or input.new()
    -- backward compatibility
@@ -86,7 +94,6 @@ function SpatialMaxPooling:updateOutput(input)
 	      self.mkldnnInitOk
 	   )
    end
-   self.mkldnnInitOk = 1
    if self.timerEnable then
         print("mkldnn SpatialMaxPooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
         sys.maxpoolingTime = sys.maxpoolingTime + self.timeForward + self.timeBackward
@@ -123,13 +130,13 @@ function SpatialMaxPooling:updateGradInput(input, gradOutput)
 	      self.dW, self.dH,
 	      self.padW, self.padH,
 	      self.ceil_mode,
-	      self.dnnPrimitives:cdata()
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
 	      input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,5)
 
    else
 
-	   input.THNN.SpatialMaxPooling_updateGradInput(
+	input.THNN.SpatialMaxPooling_MKLDNN_updateGradInput(
 	      input:cdata(),
 	      gradOutput:cdata(),
 	      self.gradInput:cdata(),
@@ -137,7 +144,8 @@ function SpatialMaxPooling:updateGradInput(input, gradOutput)
 	      self.kW, self.kH,
 	      self.dW, self.dH,
 	      self.padW, self.padH,
-	      self.ceil_mode
+	      self.ceil_mode,
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
    end
    if self.timerEnable then

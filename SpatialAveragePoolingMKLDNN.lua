@@ -15,8 +15,9 @@ function SpatialAveragePooling:__init(kW, kH, dW, dH, padW, padH)
 
 
    self.mkldnnInitOk = 0
-   self.compare = sys.compare
-   self.timerEnable = sys.timerEnable
+   self.initStep = 0
+   self.compare = sys.compare or false
+   self.timerEnable = sys.timerEnable or false
    self.timeForward = 0
    self.timeBackward = 0
    self.cnt = 0
@@ -55,7 +56,12 @@ end
 function SpatialAveragePooling:updateOutput(input)
    backwardCompatible(self)
    if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(12)
+      self.dnnPrimitives = torch.LongTensor(16)
+   end
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
    end
    if self.compare  then
 	   input.THNN.SpatialAveragePooling_updateOutput(
@@ -107,7 +113,6 @@ end
 function SpatialAveragePooling:updateGradInput(input, gradOutput)
    if self.gradInput then
 
-
    if self.compare  then
       input.THNN.SpatialAveragePooling_updateGradInput(
          input:cdata(),
@@ -131,24 +136,14 @@ function SpatialAveragePooling:updateGradInput(input, gradOutput)
          self.padW, self.padH,
          self.ceil_mode,
          self.count_include_pad,
-	 self.dnnPrimitives:cdata()
+	 self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
 	 input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,9)
 
 
    else
 
-      input.THNN.SpatialAveragePooling_updateGradInput(
-         input:cdata(),
-         gradOutput:cdata(),
-         self.gradInput:cdata(),
-         self.kW, self.kH,
-         self.dW, self.dH,
-         self.padW, self.padH,
-         self.ceil_mode,
-         self.count_include_pad
-      )
---[[
+
       input.THNN.SpatialAveragePooling_MKLDNN_updateGradInput(
          input:cdata(),
          gradOutput:cdata(),
@@ -158,9 +153,9 @@ function SpatialAveragePooling:updateGradInput(input, gradOutput)
          self.padW, self.padH,
          self.ceil_mode,
          self.count_include_pad,
-         self.dnnPrimitives:cdata()l
+         self.dnnPrimitives:cdata(),self.mkldnnInitOk
       )
-]]--
+
    end
 
       -- for backward compatibility

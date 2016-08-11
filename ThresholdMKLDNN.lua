@@ -13,23 +13,32 @@ function Threshold:__init(th,v,ip)
       error('in-place flag must be boolean')
    end
    self.mkldnnInitOk = 0
-   self.compare = sys.compare
-   self.timerEnable = sys.timerEnable
+   self.initStep = 0
+   self.compare = sys.compare or false
+   self.timerEnable = sys.timerEnable or false
    self.timeForward = 0
    self.timeBackward = 0
    self.cnt = 0
+   self:setEngine(1)
 
    self:validateParameters()
 end
 
 function Threshold:updateOutput(input)
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(3)
-   end
+
    if self.timerEnable then
 	startTime = sys.clock()
    end
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
+   end
+   if self.mkldnnInitOk == 0 then
+      self.dnnPrimitives = torch.LongTensor(8)
+   end
    self:validateParameters()
+
    if self.compare  then
 	   input.THNN.Threshold_updateOutput(
 	      input:cdata(),
@@ -62,7 +71,6 @@ function Threshold:updateOutput(input)
       self.mkldnnInitOk
    )
    end
-   self.mkldnnInitOk = 1
    if self.timerEnable then
         print("mkldnn Threshold forward time = ,",self.timeForward," backward time =",self.timeBackward)
         sys.reluTime = sys.reluTime + self.timeForward + self.timeBackward
@@ -92,7 +100,7 @@ function Threshold:updateGradInput(input, gradOutput)
 	      tmpGradInput:cdata(),
 	      self.threshold,
 	      self.inplace,
-	      self.dnnPrimitives:cdata()
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
 	   --print("mkldnn Threshold backward compare")
 	   outSize = tonumber(tmpGradInput:cdata().size[0]*tmpGradInput:cdata().size[1]*tmpGradInput:cdata().size[2]*tmpGradInput:cdata().size[3])
@@ -104,7 +112,7 @@ function Threshold:updateGradInput(input, gradOutput)
 	      self.gradInput:cdata(),
 	      self.threshold,
 	      self.inplace,
-	      self.dnnPrimitives:cdata()
+	      self.dnnPrimitives:cdata(),self.mkldnnInitOk
 	   )
    end
    if self.timerEnable then
