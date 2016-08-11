@@ -97,11 +97,13 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_out, relu_backward, dnnResourceDiffDst), err );
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_src, relu_backward, dnnResourceDiffSrc), err );
 
+#if CONVERSION_LOG
 	int check1 = dnnLayoutCompare_F32(lt_user_output, lt_relu_diff_out);
 	int check2 = dnnLayoutCompare_F32(lt_user_output, lt_relu_forward_output);
 	int check3 = dnnLayoutCompare_F32(lt_relu_forward_output, lt_relu_diff_out);
 	int check4 = dnnLayoutCompare_F32(primitives->storage->data[RELU_LAYOUT_INPUT], lt_relu_diff_src);
 	fprintf(stderr, "	MKLDNN RELU backward data, check1=%d,check2=%d,check3=%d, check4=%d\n", check1,check2,check3,check4);
+#endif
 
 	//backward conversion init
 	CHECK_ERR( THNN_(init_conversion)(&cv_backward_output, &buffer_backward_output, lt_relu_diff_out, lt_user_output), err );
@@ -213,9 +215,9 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	{
 #if CONVERSION_LOG
 		fprintf(stderr, "	RELU backward output conversion \n");
+#endif
 		resRelu1[dnnResourceDiffDst] = buffer_backward_output;
 		CHECK_ERR( dnnConversionExecute_F32(cv_backward_output, THTensor_(data)(gradOutput), resRelu1[dnnResourceDiffDst]), err );
-#endif
 	}
 	CHECK_ERR( dnnExecute_F32(relu1, (void**)resRelu1), err );
 	if(cv_backward_output)

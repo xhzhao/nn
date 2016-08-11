@@ -217,9 +217,10 @@ void THNN_(BatchNormalization_MKLDNN_backward)(
 		{
 #if CONVERSION_LOG
 			fprintf(stderr, "	BN backward output conversion... \n");
+#endif
 			BatchNorm_res[dnnResourceDiffDst] = buffer_backward_output;
 			CHECK_ERR( dnnConversionExecute_F32(cv_backward_output, THTensor_(data)(gradOutput), BatchNorm_res[dnnResourceDiffDst]), err );
-#endif
+
 		}
 
 		CHECK_ERR( dnnExecute_F32(bn_backward, (void*)BatchNorm_res), err );
