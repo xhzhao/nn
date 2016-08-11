@@ -25,8 +25,8 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
    -- xhzhao add:
    self.mkldnnInitOk = 0
    self.initStep = 0
-   self.compare = sys.compare
-   self.timerEnable = sys.timerEnable
+   self.compare = sys.compare or false
+   self.timerEnable = sys.timerEnable or false
    self.timeForward = 0
    self.timeBackward1 = 0
    self.timeBackward2 = 0

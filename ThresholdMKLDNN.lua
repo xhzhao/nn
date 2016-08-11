@@ -14,8 +14,8 @@ function Threshold:__init(th,v,ip)
    end
    self.mkldnnInitOk = 0
    self.initStep = 0
-   self.compare = sys.compare
-   self.timerEnable = sys.timerEnable
+   self.compare = sys.compare or false
+   self.timerEnable = sys.timerEnable or false
    self.timeForward = 0
    self.timeBackward = 0
    self.cnt = 0
