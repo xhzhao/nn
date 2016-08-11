@@ -99,8 +99,9 @@ void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
 	real * buffer = NULL;
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 
-
+#if CONVERSION_LOG
 	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW called: N=%d,C=%d,H=%d,W=%d, mkldnnLayout = 0x%x\n", N,inC,inH,inW,mkldnnLayout);
+#endif
 	if(!dnnLayoutCompare_F32(mkldnnLayout, lt_user_input))
 	{
 		CHECK_ERR( dnnConversionCreate_F32(&cv_BacktoNCHW, mkldnnLayout, lt_user_input), err );

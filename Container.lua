@@ -9,7 +9,6 @@ end
 
 function Container:CheckOutputLayout(input)
    if input:cdata().mkldnnLayout ~= 0 then
-      print("Container:convertBackToNCHW")
       input.THNN.MKLDNN_ConvertLayoutBackToNCHW(input:cdata())
    end
    return 
