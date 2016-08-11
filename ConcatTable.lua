@@ -14,25 +14,27 @@ function ConcatTable:__init()
 end
 
 function ConcatTable:updateOutput(input)
-   if self.timerEnable then
-        startTime = sys.clock()
-   end
-
+   local startTime
 
    for i=1,#self.modules do
       self.output[i] = self:rethrowErrors(self.modules[i], i, 'updateOutput', input)
+   end
+   if self.timerEnable then                                                                                        
+        startTime = sys.clock()                                                                                    
+   end
+
+   for i=1,#self.modules do
       self:CheckOutputLayout(self.output[i])
    end
 
    if self.timerEnable then
-                print("ConcatTable  forward time =         ",self.timeForward," backward time =",self.timeBackward)
-                sys.concatTime = sys.concatTime + (self.timeForward + self.timeBackward)
-        self.timeForward =  (sys.clock() - startTime)
-        self.timeBackward = 0
-        self.cnt = self.cnt + 1
+      self.timeForward = sys.clock() - startTime
+      print("ConcatTable  forward time =         ",self.timeForward," backward time =",self.timeBackward)
+      sys.concatTime = sys.concatTime + (self.timeForward + self.timeBackward)
+      self.timeForward =  0
+      self.timeBackward = 0
+      self.cnt = self.cnt + 1
    end
-
-
 
    return self.output
 end
@@ -55,11 +57,13 @@ local function backward(self, method, input, gradOutput, scale)
    local isTable = torch.type(input) == 'table'
    local wasTable = torch.type(self.gradInput) == 'table'
 
+   --[[
    if self.timerEnable then
         startTime = sys.clock()
-   end
-
-
+   end]]
+   local iterStartTime
+   local iterBackward
+   local backwardTime = 0
    if isTable then
       for i,module in ipairs(self.modules) do
          local currentGradInput = self:rethrowErrors(module, i, method, input, gradOutput[i], scale)
@@ -68,6 +72,10 @@ local function backward(self, method, input, gradOutput, scale)
          end
          if #input ~= #currentGradInput then
             error("table size mismatch: "..#input.." ~= "..#currentGradInput)
+         end
+
+         if self.timerEnable then
+            iterStartTime = sys.clock()
          end
          if i == 1 then
             self.gradInput = wasTable and self.gradInput or {}
@@ -89,21 +97,36 @@ local function backward(self, method, input, gradOutput, scale)
                end
             )
          end
+         if self.timerEnable then
+            iterBackward = sys.clock() - iterStartTime
+            backwardTime = backwardTime + iterBackward
+         end
       end
    else
       self.gradInput = (not wasTable) and self.gradInput or input:clone()
       for i,module in ipairs(self.modules) do
          local currentGradInput = self:rethrowErrors(module, i, method, input, gradOutput[i], scale)
+
+         if self.timerEnable then
+            iterStartTime = sys.clock()
+         end
+
          if i == 1 then
             self.gradInput:resizeAs(currentGradInput):copy(currentGradInput)
          else
             self.gradInput:add(currentGradInput)
          end
+
+         if self.timerEnable then
+            iterBackward = sys.clock() - iterStartTime
+            backwardTime = backwardTime+ iterBackward
+         end
+
       end
    end
-
+   
    if self.timerEnable then
-        self.timeBackward =  (sys.clock() - startTime)
+        self.timeBackward =  backwardTime
    end
 
 
