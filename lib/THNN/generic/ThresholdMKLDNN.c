@@ -18,6 +18,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(
 	dnnError_t err;
 	dnnPrimitive_t relu_forward = NULL, relu_backward = NULL;
 	dnnLayout_t lt_relu_input = NULL,lt_relu_diff_out=NULL, lt_relu_forward_output;
+	real * buffer_forward_output = NULL;
 
 #if NEW_INTERFACE
 	/*for new interface*/
@@ -48,10 +49,13 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(
 #endif
 
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_forward_output, relu_forward, dnnResourceDst), err );
+	CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_relu_forward_output), err );
+
 
 	primitives->storage->data[RELU_FORWARD] = (long long)relu_forward;
 	primitives->storage->data[RELU_BACKWARD] = (long long)relu_backward;
 	primitives->storage->data[RELU_LAYOUT_FORWARD_OUTPUT] = (long long)lt_relu_forward_output;
+	primitives->storage->data[BUFFER_RELU_FORWARD_OUTPUT] = (long long)buffer_forward_output;
 
 
 }
@@ -94,8 +98,10 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 	}
 	dnnLayout_t lt_relu_forward_output = (dnnLayout_t)primitives->storage->data[RELU_LAYOUT_FORWARD_OUTPUT];
 
+	real * buffer_backward_input = NULL;
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_out, relu_backward, dnnResourceDiffDst), err );
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_src, relu_backward, dnnResourceDiffSrc), err );
+	CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_backward_input), lt_relu_diff_src), err );
 
 #if CONVERSION_LOG
 	int check1 = dnnLayoutCompare_F32(lt_user_output, lt_relu_diff_out);
@@ -110,6 +116,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 
 	primitives->storage->data[CV_RELU_BACKWARD_OUTPUT] = (long long)cv_backward_output;
 	primitives->storage->data[BUFFER_RELU_BACKWARD_OUTPUT] = (long long)buffer_backward_output;
+	primitives->storage->data[BUFFER_RELU_BACKWARD_INPUT] = (long long)buffer_backward_input;
 	primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT] = (long long)lt_relu_diff_src;
 }
 
@@ -153,7 +160,10 @@ void THNN_(Threshold_MKLDNN_updateOutput)(
 		primitives->storage->data[RELU_LAYOUT_INPUT] = (long long)input->mkldnnLayout;
 		THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(primitives,N,inC,inH,inW,outC,outH,outW,threshold);
 	}
-	
+	real * buffer_forward_output = (real *)primitives->storage->data[BUFFER_RELU_FORWARD_OUTPUT];
+        output->storage->data = buffer_forward_output;
+        output->storageOffset = 0;
+
 	relu1 = (dnnPrimitive_t) (primitives->storage->data[RELU_FORWARD]);
 
 	real *resRelu1[dnnResourceNumber];
@@ -203,6 +213,10 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 
 	THTensor_(resizeAs)(gradInput, input);
 	relu1 = (dnnPrimitive_t) (primitives->storage->data[RELU_BACKWARD]);
+        real * buffer_backward_input = (real *) (primitives->storage->data[BUFFER_RELU_BACKWARD_INPUT]);
+        gradInput->storage->data = buffer_backward_input;
+        gradInput->storageOffset = 0;
+
 
 	real *resRelu1[dnnResourceNumber];
 	resRelu1[dnnResourceSrc] 	= THTensor_(data)(input);

@@ -43,6 +43,7 @@ static void THNN_(BatchNormalization_MKLDNN_init_forward)(
 
 	dnnLayout_t lt_bn_forward_workspace,lt_bn_forward_scaleshift,lt_bn_forward_output,lt_bn_backward_input;
 	real * buffer_forward_workspace = NULL; real * buffer_forward_scaleshift = NULL;
+	real * buffer_forward_output = NULL; real * buffer_backward_input = NULL;
 	dnnLayoutCreateFromPrimitive_F32(&lt_bn_forward_workspace, bn_forward, dnnResourceWorkspace);
 	dnnLayoutCreateFromPrimitive_F32(&lt_bn_forward_output, bn_forward, dnnResourceDst);
 	dnnLayoutCreateFromPrimitive_F32(&lt_bn_forward_scaleshift, bn_forward, dnnResourceScaleShift);
@@ -51,6 +52,8 @@ static void THNN_(BatchNormalization_MKLDNN_init_forward)(
 
 	CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_workspace), lt_bn_forward_workspace), err );
 	CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_scaleshift), lt_bn_forward_scaleshift), err );
+	CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_bn_forward_output), err );
+	CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_backward_input), lt_bn_backward_input), err );
 	
 	//save the dnnPrimitive to THTensor(long int array)
 	primitives->storage->data[BN_LAYOUT_FORWARD_OUTPUT] = (long long)lt_bn_forward_output;
@@ -61,6 +64,8 @@ static void THNN_(BatchNormalization_MKLDNN_init_forward)(
 	primitives->storage->data[BN_SCALESHIFT] = (long long)bn_bwd_scaleshift;
 	primitives->storage->data[BUFFER_BN_FORWARD_WORKSPACE] = (long long)buffer_forward_workspace;
 	primitives->storage->data[BUFFER_BN_FORWARD_SCALESHIFT] = (long long)buffer_forward_scaleshift;
+	primitives->storage->data[BUFFER_BN_FORWARD_OUTPUT] = (long long)buffer_forward_output;
+	primitives->storage->data[BUFFER_BN_BACKWARD_INPUT] = (long long)buffer_backward_input;
 	primitives->storage->data[BUFFER_BN_BACKWARD_WORKSPACE] = (long long)buffer_forward_workspace;
 }
 
@@ -132,7 +137,10 @@ void THNN_(BatchNormalization_MKLDNN_updateOutput)(
 	dnnPrimitive_t bn_forward = (dnnPrimitive_t)primitives->storage->data[BN_FORWARD];
 	real * buffer_forward_workspace = (real *)primitives->storage->data[BUFFER_BN_FORWARD_WORKSPACE];
 	real * buffer_forward_scaleshift = (real *)primitives->storage->data[BUFFER_BN_FORWARD_SCALESHIFT];
-
+	real * buffer_forward_output = (real *)primitives->storage->data[BUFFER_BN_FORWARD_OUTPUT];
+	
+	output->storage->data = buffer_forward_output;
+	output->storageOffset = 0;
 	//fprintf(stderr, "BN MKLDNN, nInput = %d \n", nInput);
 	for(int i =0; i < inC; i++)
 	{
@@ -205,7 +213,10 @@ void THNN_(BatchNormalization_MKLDNN_backward)(
 		dnnPrimitive_t cv_backward_output = (dnnPrimitive_t) (primitives->storage->data[CV_BN_BACKWARD_OUTPUT]);
 
 		real * buffer_backward_output = (real *) (primitives->storage->data[BUFFER_BN_BACKWARD_OUTPUT]);
+		real * buffer_backward_input = (real *) (primitives->storage->data[BUFFER_BN_BACKWARD_INPUT]);
 
+		gradInput->storage->data = buffer_backward_input;
+		gradInput->storageOffset = 0;
 		void* BatchNorm_res[dnnResourceNumber];
 		BatchNorm_res[dnnResourceSrc] = THTensor_(data)(input);
 		BatchNorm_res[dnnResourceDiffDst] = THTensor_(data)(gradOutput);

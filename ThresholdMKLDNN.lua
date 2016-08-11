@@ -35,7 +35,7 @@ function Threshold:updateOutput(input)
 	self.mkldnnInitOk = 1
    end
    if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(8)
+      self.dnnPrimitives = torch.LongTensor(11)
    end
    self:validateParameters()
 
