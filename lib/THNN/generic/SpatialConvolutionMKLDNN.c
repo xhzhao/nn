@@ -925,7 +925,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
         double convert_time1 = (convert1.tv_sec - start.tv_sec) * 1000 + (double)(convert1.tv_usec - start.tv_usec) /1000;
         double exec_time = (convert2.tv_sec - convert1.tv_sec) * 1000 + (double)(convert2.tv_usec - convert1.tv_usec) /1000;
         double convert_time2 = (end.tv_sec - convert2.tv_sec) * 1000 + (double)(end.tv_usec - convert2.tv_usec) /1000;
-        fprintf(stderr,"        bwdfilter MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2f\nms",convert_time1,exec_time,convert_time2);
+        fprintf(stderr,"        bwdfilter MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2f ms\n",convert_time1,exec_time,convert_time2);
 
 #endif
 }
