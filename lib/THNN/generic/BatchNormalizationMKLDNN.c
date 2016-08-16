@@ -138,7 +138,14 @@ void THNN_(BatchNormalization_MKLDNN_updateOutput)(
 	real * buffer_forward_workspace = (real *)primitives->storage->data[BUFFER_BN_FORWARD_WORKSPACE];
 	real * buffer_forward_scaleshift = (real *)primitives->storage->data[BUFFER_BN_FORWARD_SCALESHIFT];
 	real * buffer_forward_output = (real *)primitives->storage->data[BUFFER_BN_FORWARD_OUTPUT];
-	
+
+			//release the original buffer, replace it with the internal buffer
+	if(output->mkldnnLayout == 0)
+	{
+		int memSize = output->storage->size;
+		THStorage_(free)(output->storage);
+		output->storage = THStorage_(newWithData)(buffer_forward_output,memSize);
+	}
 	output->storage->data = buffer_forward_output;
 	output->storageOffset = 0;
 	//fprintf(stderr, "BN MKLDNN, nInput = %d \n", nInput);
@@ -215,6 +222,12 @@ void THNN_(BatchNormalization_MKLDNN_backward)(
 		real * buffer_backward_output = (real *) (primitives->storage->data[BUFFER_BN_BACKWARD_OUTPUT]);
 		real * buffer_backward_input = (real *) (primitives->storage->data[BUFFER_BN_BACKWARD_INPUT]);
 
+		if(gradInput->mkldnnLayout == 0)
+		{
+			int memSize = gradInput->storage->size;
+			THStorage_(free)(gradInput->storage);
+			gradInput->storage = THStorage_(newWithData)(buffer_backward_input,memSize);
+		}
 		gradInput->storage->data = buffer_backward_input;
 		gradInput->storageOffset = 0;
 		void* BatchNorm_res[dnnResourceNumber];

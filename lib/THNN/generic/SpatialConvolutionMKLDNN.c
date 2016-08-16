@@ -550,9 +550,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	buffer_forward_output 	= (real *)(primitives->storage->data[BUFFER_FORWARD_OUTPUT]);
 
 
-	THTensor_(resize3d)(finput, N, kW*kH*inC, outH*outW);
 	THTensor_(resize4d)(output, N, outC, outH, outW);
-	//return;
 #if LOG_ENABLE
 	gettimeofday(&mid,NULL);
 	fprintf(stderr, "SpatialConvolutionMM_MKLDNN_forward: start, m_conv_forward = 0x%x \n",m_conv_forward);
@@ -625,6 +623,12 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 
 		if(cv_forward_output){
 			//release the original buffer, replace it with the internal buffer
+			if(output->mkldnnLayout == 0)
+			{
+				int memSize = output->storage->size;
+				THStorage_(free)(output->storage);
+				output->storage = THStorage_(newWithData)(buffer_forward_output,memSize);
+			}
 			output->storage->data = buffer_forward_output;
 			output->storageOffset = 0;
 		}
@@ -754,6 +758,12 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 		gettimeofday(&convert2,NULL);
 
 		if(cv_bwddata_input){
+			if(gradInput->mkldnnLayout == 0)
+			{
+				int memSize = gradInput->storage->size;
+				THStorage_(free)(gradInput->storage);
+				gradInput->storage = THStorage_(newWithData)(buffer_bwddata_input,memSize);
+			}
 			gradInput->storage->data = buffer_bwddata_input;
 		}
 		gradInput->mkldnnLayout = (long long)primitives->storage->data[CONV_LAYOUT_BWDDATA_INPUT];

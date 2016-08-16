@@ -16,7 +16,6 @@ function Module:getEngine()
 end
 function Module:CheckInputLayout(input)
    if self.engine == 0 and input:cdata().mkldnnLayout ~= 0 then
-      print("Module:convertBackToNCHW")
       input.THNN.MKLDNN_ConvertLayoutBackToNCHW(input:cdata())
    end
    return 
@@ -40,7 +39,6 @@ function Module:updateOutput(input)
 end
 
 function Module:forward(input)
-   print("forward called, self.engine = ", self.engine )
    if self.engine == 0  then
       self:CheckInputLayout(input)
    end

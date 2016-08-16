@@ -73,7 +73,13 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_pool_forward_workspace, pool1, dnnResourceWorkspace), err );
 	CHECK_ERR( dnnAllocateBuffer_F32((void**)&buffer_forward_workspace, lt_pool_forward_workspace) , err );
 
-
+#if CONVERSION_LOG
+	int input_size = dnnLayoutGetMemorySize_F32(lt_pool_forward_input);
+	int output_size = dnnLayoutGetMemorySize_F32(lt_pool_forward_output);
+	int workspace_size = dnnLayoutGetMemorySize_F32(lt_pool_forward_workspace);
+	fprintf(stderr, "MKLDNN max pooling workspace_size = %d, input_size =%d, output_size =%d \n",workspace_size,input_size,output_size);
+	fprintf(stderr, "MKLDNN max pooling NCHW output_size =%d \n",N*outC*outH*outW);
+#endif
 	if(!dnnLayoutCompare_F32(lt_user_output, lt_pool_forward_output))
 	{
 		//fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
@@ -303,6 +309,13 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 
 	CHECK_ERR( dnnExecute_F32(pool1, (void*)resPool1), err );
 	if(cv_forward_output){
+		//fprintf(stderr,"	Pooling MKLDNN forward check1,output->mkldnnLayout = 0x%x\n",output->mkldnnLayout);
+		if(output->mkldnnLayout == 0)
+		{
+			int memSize = output->storage->size;
+			THStorage_(free)(output->storage);
+			output->storage = THStorage_(newWithData)(resPool1[dnnResourceDst],memSize);
+		}
 		output->storage->data = resPool1[dnnResourceDst];
 		output->storageOffset = 0;
 	}
@@ -432,6 +445,12 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 	CHECK_ERR( dnnExecute_F32(pool_bwd, (void*)resPool1), err );
 	if(cv_backward_input){
 		//fprintf(stderr, "	Maxpooling backward input conversion \n");
+		if(gradInput->mkldnnLayout == 0)
+		{
+			int memSize = gradInput->storage->size;
+			THStorage_(free)(gradInput->storage);
+			gradInput->storage = THStorage_(newWithData)(buffer_backward_input,memSize);
+		}
 		gradInput->storage->data = buffer_backward_input;
 		gradInput->storageOffset = 0;
 	}

@@ -161,6 +161,12 @@ void THNN_(Threshold_MKLDNN_updateOutput)(
 		THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(primitives,N,inC,inH,inW,outC,outH,outW,threshold);
 	}
 	real * buffer_forward_output = (real *)primitives->storage->data[BUFFER_RELU_FORWARD_OUTPUT];
+	if(output->mkldnnLayout == 0)
+	{
+		int memSize = output->storage->size;
+		THStorage_(free)(output->storage);
+		output->storage = THStorage_(newWithData)(buffer_forward_output,memSize);
+	}
         output->storage->data = buffer_forward_output;
         output->storageOffset = 0;
 
@@ -212,6 +218,12 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	THTensor_(resizeAs)(gradInput, input);
 	relu1 = (dnnPrimitive_t) (primitives->storage->data[RELU_BACKWARD]);
         real * buffer_backward_input = (real *) (primitives->storage->data[BUFFER_RELU_BACKWARD_INPUT]);
+	if(gradInput->mkldnnLayout == 0)
+	{
+		int memSize = gradInput->storage->size;
+		THStorage_(free)(gradInput->storage);
+		gradInput->storage = THStorage_(newWithData)(buffer_backward_input,memSize);
+	}
         gradInput->storage->data = buffer_backward_input;
         gradInput->storageOffset = 0;
 
