@@ -189,3 +189,6 @@
 
 #include "generic/SpatialReplicationPadding.c"
 #include "THGenerateFloatTypes.h"
+
+#include "generic/ConcatMKLDNN.c"
+#include "THGenerateFloatTypes.h"

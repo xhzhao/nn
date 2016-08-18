@@ -35,6 +35,18 @@ dnnError_t  THNN_(init_conversion)(dnnPrimitive_t *cv, real **ptr_out,
 }
 
 
+/*set the tensor pointer to newBuffer, and layout to newLayout*/
+void THNN_(MKLDNN_set_tensor)(
+          THNNState * state,
+          THTensor * t,
+          long long newBuffer,
+	  long long newLayout
+	)
+{
+	t->storage->data = (real * )newBuffer;
+	t->mkldnnLayout = newLayout;
+}
+
 void THNN_(SpatialConvolutionMM_compare)(
           THNNState * state,
           THTensor * mkldnn,
@@ -223,6 +235,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 	//save the dnnPrimitive to THTensor(long int array)
 	//save the output layout to dnnPrimitive
 	primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT] = (long long)lt_forward_conv_output;
+	primitives->storage->data[CONV_LAYOUT_INPUT] = (long long)lt_forward_conv_input;
 	primitives->storage->data[FORWARD_INDEX] = (long long)m_conv_forward;
 	primitives->storage->data[BWD_DATA_INDEX] = (long long)m_conv_bwd_data;
 	primitives->storage->data[BWD_FILTER_INDEX] = (long long)m_conv_bwd_filter;

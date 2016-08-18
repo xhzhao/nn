@@ -178,6 +178,6 @@ require('nn.ThresholdMKLDNN')
 require('nn.ReLUMKLDNN')
 require('nn.BatchNormalizationMKLDNN')
 require('nn.SpatialBatchNormalizationMKLDNN')
-
+require('nn.ConcatMKLDNN')
 
 return nn
