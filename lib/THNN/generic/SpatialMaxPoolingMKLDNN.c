@@ -254,8 +254,10 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
   }
 
   /* get contiguous input */
-  input = THTensor_(newContiguous)(input);
-
+  if(input->mkldnnLayout != 0)
+  {
+  	input = THTensor_(newContiguous)(input);
+  }
     THTensor_(resize4d)(output, nbatch, nslices, oheight, owidth);
     /* indices will contain the locations for each output point */
     THTensor_(resize4d)(indices, nbatch, nslices, oheight, owidth);
@@ -357,8 +359,11 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
   real *gradOutput_data;
   real *indices_data;
 
+  if(gradOutput->mkldnnLayout != 0)
+  {
   /* get contiguous gradOutput */
-  gradOutput = THTensor_(newContiguous)(gradOutput);
+     gradOutput = THTensor_(newContiguous)(gradOutput);
+  }
 
   /* resize */
   THTensor_(resizeAs)(gradInput, input);
