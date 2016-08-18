@@ -254,10 +254,12 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
   }
 
   /* get contiguous input */
+  fprintf(stderr, "MKLDNN maxpooling updateOutput: input->mkldnnLayout = 0x%x \n", input->mkldnnLayout);
   if(input->mkldnnLayout == 0)
   {
   	input = THTensor_(newContiguous)(input);
   }
+  fprintf(stderr, "MKLDNN maxpooling updateOutput end\n");
     THTensor_(resize4d)(output, nbatch, nslices, oheight, owidth);
     /* indices will contain the locations for each output point */
     THTensor_(resize4d)(indices, nbatch, nslices, oheight, owidth);
@@ -328,7 +330,10 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 	fprintf(stderr,"	Pooling MKLDNN time = %.2f ms\n",duration );
 #endif
   /* cleanup */
-  THTensor_(free)(input);
+  if(input->mkldnnLayout == 0)
+  {
+    THTensor_(free)(input);
+  }
 }
 
 void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
@@ -359,12 +364,13 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
   real *gradOutput_data;
   real *indices_data;
 
+  fprintf(stderr, "MKLDNN maxpooling updateGradInput: gradOutput->mkldnnLayout = 0x%x \n", gradOutput->mkldnnLayout);
   if(gradOutput->mkldnnLayout == 0)
   {
   /* get contiguous gradOutput */
      gradOutput = THTensor_(newContiguous)(gradOutput);
   }
-
+  fprintf(stderr, "MKLDNN maxpooling updateGradInput end\n");
   /* resize */
   THTensor_(resizeAs)(gradInput, input);
   THTensor_(zero)(gradInput);
@@ -469,7 +475,10 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
   }
 
   /* cleanup */
-  THTensor_(free)(gradOutput);
+  if(gradOutput->mkldnnLayout == 0)
+  {
+    THTensor_(free)(gradOutput);
+  }
 }
 
 #endif
