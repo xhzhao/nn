@@ -254,7 +254,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
   }
 
   /* get contiguous input */
-  if(input->mkldnnLayout != 0)
+  if(input->mkldnnLayout == 0)
   {
   	input = THTensor_(newContiguous)(input);
   }
@@ -359,7 +359,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
   real *gradOutput_data;
   real *indices_data;
 
-  if(gradOutput->mkldnnLayout != 0)
+  if(gradOutput->mkldnnLayout == 0)
   {
   /* get contiguous gradOutput */
      gradOutput = THTensor_(newContiguous)(gradOutput);
