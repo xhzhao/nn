@@ -742,19 +742,13 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 			//fprintf(stderr, "	MKLDNN Convolution backward data:	convert 1 done. \n");
 		}
 
-		if(buffer_forward_filter)
-		{
-			resConv[dnnResourceFilter] = buffer_forward_filter;
-		}
-		else
-		{
-			if(cv_bwddata_filter){
-				resConv[dnnResourceFilter] = buffer_bwddata_filter;
-				convert_resources[dnnResourceFrom] = filterPtr;
-				convert_resources[dnnResourceTo]   = buffer_bwddata_filter;
-				CHECK_ERR( dnnExecute_F32(cv_bwddata_filter, convert_resources), err );
-				//fprintf(stderr, "		convert 2 called. \n");
-			}
+
+		if(cv_bwddata_filter){
+			resConv[dnnResourceFilter] = buffer_bwddata_filter;
+			convert_resources[dnnResourceFrom] = filterPtr;
+			convert_resources[dnnResourceTo]   = buffer_bwddata_filter;
+			CHECK_ERR( dnnExecute_F32(cv_bwddata_filter, convert_resources), err );
+			//fprintf(stderr, "		convert 2 called. \n");
 		}
 
 		if(cv_bwddata_input){
