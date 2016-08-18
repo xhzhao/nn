@@ -99,11 +99,12 @@ void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
 	real * buffer = NULL;
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 
-#if CONVERSION_LOG
-	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW called: N=%d,C=%d,H=%d,W=%d, mkldnnLayout = 0x%x\n", N,inC,inH,inW,mkldnnLayout);
-#endif
+
 	if(!dnnLayoutCompare_F32(mkldnnLayout, lt_user_input))
 	{
+#if CONVERSION_LOG
+		fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW called: N=%d,C=%d,H=%d,W=%d, mkldnnLayout = 0x%x\n", N,inC,inH,inW,mkldnnLayout);
+#endif
 		CHECK_ERR( dnnConversionCreate_F32(&cv_BacktoNCHW, mkldnnLayout, lt_user_input), err );
 		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer), lt_user_input), err );
 		//release the original buffer
@@ -704,6 +705,8 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	buffer_bwddata_filter 	= (real *)(primitives->storage->data[BUFFER_BWDDATA_FILTER]);
 	buffer_bwddata_output 	= (real *)(primitives->storage->data[BUFFER_BWDDATA_OUTPUT]);
 
+	real * buffer_forward_filter 	= (real *)(primitives->storage->data[BUFFER_FORWARD_FILTER]);
+
 	THTensor_(resizeAs)(gradInput, input);
 	gettimeofday(&mid2,NULL);
 	THTensor_(zero)(gradInput);
@@ -738,13 +741,20 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 			CHECK_ERR( dnnExecute_F32(cv_bwddata_output,convert_resources), err );
 			//fprintf(stderr, "	MKLDNN Convolution backward data:	convert 1 done. \n");
 		}
-		
-		if(cv_bwddata_filter){
-			resConv[dnnResourceFilter] = buffer_bwddata_filter;
-			convert_resources[dnnResourceFrom] = filterPtr;
-			convert_resources[dnnResourceTo]   = buffer_bwddata_filter;
-			CHECK_ERR( dnnExecute_F32(cv_bwddata_filter, convert_resources), err );
-			//fprintf(stderr, "		convert 2 called. \n");
+
+		if(buffer_forward_filter)
+		{
+			resConv[dnnResourceFilter] = buffer_forward_filter;
+		}
+		else
+		{
+			if(cv_bwddata_filter){
+				resConv[dnnResourceFilter] = buffer_bwddata_filter;
+				convert_resources[dnnResourceFrom] = filterPtr;
+				convert_resources[dnnResourceTo]   = buffer_bwddata_filter;
+				CHECK_ERR( dnnExecute_F32(cv_bwddata_filter, convert_resources), err );
+				//fprintf(stderr, "		convert 2 called. \n");
+			}
 		}
 
 		if(cv_bwddata_input){
