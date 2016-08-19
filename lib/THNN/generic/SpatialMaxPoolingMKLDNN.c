@@ -356,11 +356,9 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
   real *gradOutput_data;
   real *indices_data;
 
-  fprintf(stderr, "MKLDNN maxpooling updateGradInput: gradOutput->mkldnnLayout = 0x%x \n", gradOutput->mkldnnLayout);
   /* get contiguous gradOutput */
   gradOutput = THTensor_(newContiguous)(gradOutput);
-  fprintf(stderr, "MKLDNN maxpooling updateGradInput end\n");
-  /* resize */
+ /* resize */
   THTensor_(resizeAs)(gradInput, input);
   THTensor_(zero)(gradInput);
 
