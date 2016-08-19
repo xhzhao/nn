@@ -24,12 +24,11 @@ function ConcatTable:updateOutput(input)
    end
 
    if self.timerEnable then
-      self.timeForward = sys.clock() - startTime
+      
       print("ConcatTable  forward time =         ",self.timeForward," backward time =",self.timeBackward)
       sys.concatTableTime_forward = sys.concatTableTime_forward + self.timeForward 
       sys.concatTableTime_backward = sys.concatTableTime_backward + self.timeBackward
-      self.timeForward =  0
-      self.timeBackward = 0
+      self.timeForward = sys.clock() - startTime
       self.cnt = self.cnt + 1
    end
 
