@@ -5,11 +5,8 @@ function Concat:__init(dimension)
    self.size = torch.LongStorage()
    self.dimension = dimension
 
-   self.timerEnable = sys.timerEnable
-   self.timeForward = 0
-   self.timeBackward1 = 0
-   self.timeBackward2 = 0
-   self.cnt = 0
+   self:setEngine(0)
+
 
 
 end
@@ -51,11 +48,11 @@ function Concat:updateOutput(input)
       offset = offset + currentOutput:size(self.dimension)
    end
     if self.timerEnable then
-      iterForward = sys.clock() - iterStartTime
-      forwardTime = forwardTime + iterForward
- 
-                print("Concat forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
-                sys.concatTime2 = sys.concatTime2 + (self.timeForward + self.timeBackward1+ self.timeBackward2)
+        iterForward = sys.clock() - iterStartTime
+        forwardTime = forwardTime + iterForward
+        print("Concat forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
+        sys.concatTime_forward = sys.concatTime_forward +self.timeForward 
+        sys.concatTime_backward = sys.concatTime_backward + (self.timeBackward1+ self.timeBackward2)
         self.timeForward = forwardTime
         self.cnt = self.cnt + 1
    end

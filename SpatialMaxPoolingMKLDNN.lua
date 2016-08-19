@@ -14,13 +14,6 @@ function SpatialMaxPooling:__init(kW, kH, dW, dH, padW, padH)
    self.padW = padW or 0
    self.padH = padH or 0
 
-   self.mkldnnInitOk = 0
-   self.initStep = 0
-   self.compare = sys.compare or false
-   self.timerEnable = sys.timerEnable or false
-   self.timeForward = 0
-   self.timeBackward = 0
-   self.cnt = 0
    self:setEngine(1)
 
 
@@ -96,7 +89,8 @@ function SpatialMaxPooling:updateOutput(input)
    end
    if self.timerEnable then
         print("mkldnn SpatialMaxPooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
-        sys.maxpoolingTime = sys.maxpoolingTime + self.timeForward + self.timeBackward
+        sys.maxpoolingTime_forward = sys.maxpoolingTime_forward + self.timeForward 
+        sys.maxpoolingTime_backward = sys.maxpoolingTime_backward + self.timeBackward
         self.timeForward = sys.clock() - startTime
         self.cnt = self.cnt + 1
    end

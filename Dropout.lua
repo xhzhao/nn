@@ -12,11 +12,7 @@ function Dropout:__init(p,v1,inplace)
    end
    self.noise = torch.Tensor()
 
-   self.timerEnable = sys.timerEnable
-   self.timeForward = 0
-   self.timeBackward = 0
-   self.cnt = 0
-
+   self:setEngine(0)
 
 end
 
@@ -44,9 +40,10 @@ function Dropout:updateOutput(input)
 
    if self.timerEnable then
 	mid3 = sys.clock()
-	print("DropOut forward detail: mid1=",mid1-startTime,", mid2=",mid2-mid1,", mid3=",mid3-mid2)
-                print("DropOut  forward time =         ",self.timeForward," backward time =",self.timeBackward)
-                sys.dropTime = sys.dropTime + (self.timeForward + self.timeBackward)
+	--print("DropOut forward detail: mid1=",mid1-startTime,", mid2=",mid2-mid1,", mid3=",mid3-mid2)
+        print("DropOut  forward time =         ",self.timeForward," backward time =",self.timeBackward)
+        sys.dropTime_forward = sys.dropTime_forward + self.timeForward
+        sys.dropTime_backward = sys.dropTime_backward + self.timeBackward
         self.timeForward =  (sys.clock() - startTime)
         self.timeBackward = 0
         self.cnt = self.cnt + 1

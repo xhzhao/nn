@@ -5,11 +5,7 @@ function ConcatTable:__init()
    self.modules = {}
    self.output = {}
 
-   self.timerEnable = sys.timerEnable
-   self.timeForward = 0
-   self.timeBackward = 0
-   self.cnt = 0
-
+   self:setEngine(0)
   
 end
 
@@ -30,7 +26,8 @@ function ConcatTable:updateOutput(input)
    if self.timerEnable then
       self.timeForward = sys.clock() - startTime
       print("ConcatTable  forward time =         ",self.timeForward," backward time =",self.timeBackward)
-      sys.concatTime = sys.concatTime + (self.timeForward + self.timeBackward)
+      sys.concatTableTime_forward = sys.concatTableTime_forward + self.timeForward 
+      sys.concatTableTime_backward = sys.concatTableTime_backward + self.timeBackward
       self.timeForward =  0
       self.timeBackward = 0
       self.cnt = self.cnt + 1

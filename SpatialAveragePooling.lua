@@ -13,11 +13,7 @@ function SpatialAveragePooling:__init(kW, kH, dW, dH, padW, padH)
    self.count_include_pad = true
    self.divide = true
 
-   self.timerEnable = sys.timerEnable
-   self.timeForward = 0
-   self.timeBackward = 0
-   self.cnt = 0
-
+   self:setEngine(0)
 
 end
 
@@ -74,8 +70,9 @@ function SpatialAveragePooling:updateOutput(input)
    end
 
    if self.timerEnable then
-                print("SpatialAveragePooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
-                sys.avgpoolingTime = sys.avgpoolingTime + (self.timeForward + self.timeBackward)
+        print("SpatialAveragePooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
+        sys.avgpoolingTime_forward = sys.avgpoolingTime_forward + self.timeForward
+        sys.avgpoolingTime_backward = sys.avgpoolingTime_backward + self.timeBackward
         self.timeForward =  sys.clock() - startTime
         self.cnt = self.cnt + 1
    end

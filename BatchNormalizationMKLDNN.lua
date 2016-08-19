@@ -53,14 +53,6 @@ function BN:__init(nOutput, eps, momentum, affine)
    self.running_mean = torch.zeros(nOutput)
    self.running_var = torch.ones(nOutput)
 
-   -- xhzhao add:
-   self.mkldnnInitOk = 0
-   self.initStep = 0
-   self.compare = sys.compare or false
-   self.timerEnable = sys.timerEnable or false
-   self.timeForward = 0
-   self.timeBackward = 0
-   self.cnt = 0
    self:setEngine(1)
 
 
@@ -178,8 +170,9 @@ function BN:updateOutput(input)
 	      self.dnnPrimitives:cdata(),self.mkldnnInitOk)
    end
    if self.timerEnable then
-		print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward)
-		sys.sbnTime = sys.sbnTime + (self.timeForward + self.timeBackward)
+	print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward)
+	sys.sbnTime_forward = sys.sbnTime_forward + self.timeForward
+	sys.sbnTime_backward = sys.sbnTime_backward + self.timeBackward
 	self.timeForward =  (sys.clock() - startTime)
 	self.timeBackward = 0
 	self.cnt = self.cnt + 1

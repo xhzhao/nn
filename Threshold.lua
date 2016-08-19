@@ -13,9 +13,19 @@ function Threshold:__init(th,v,ip)
       error('in-place flag must be boolean')
    end
    self:validateParameters()
+   if sys then
+      self.timerEnable = sys.timerEnable or false
+   else
+      self.timerEnable = false
+   end
+   self.timeForward = 0
+   self.timeBackward = 0
+   self.cnt = 0
+
 end
 
 function Threshold:updateOutput(input)
+   local startTime = sys.clock()
    self:validateParameters()
    input.THNN.Threshold_updateOutput(
       input:cdata(),
@@ -24,10 +34,18 @@ function Threshold:updateOutput(input)
       self.val,
       self.inplace
    )
+   if self.timerEnable then
+                print("Threshold forward time =         ,",self.timeForward," backward time =",self.timeBackward)
+                sys.thresholdTime_forward = sys.thresholdTime_forward + self.timeForward
+                sys.thresholdTime_backward = sys.thresholdTime_backward + self.timeBackward
+                self.timeForward = (sys.clock() - startTime)
+                self.cnt = self.cnt + 1
+   end
    return self.output
 end
 
 function Threshold:updateGradInput(input, gradOutput)
+   local startTime = sys.clock()
    self:validateParameters()
    input.THNN.Threshold_updateGradInput(
       input:cdata(),
@@ -36,6 +54,9 @@ function Threshold:updateGradInput(input, gradOutput)
       self.threshold,
       self.inplace
    )
+   if self.timerEnable then
+        self.timeBackward = (sys.clock() - startTime)
+   end
    return self.gradInput
 end
 

@@ -9,6 +9,23 @@ end
 
 function Module:setEngine(engineType)
    self.engine = engineType
+
+      -- xhzhao add:
+      self.mkldnnInitOk = 0
+      self.initStep = 0
+      if sys then
+         self.compare = sys.compare or false
+         self.timerEnable = sys.timerEnable or false
+      else
+         self.compare = sys.compare or false
+         self.timerEnable = sys.timerEnable or false
+      end
+      self.timeForward = 0
+      self.timeBackward = 0
+      self.timeBackward1 = 0
+      self.timeBackward2 = 0
+      self.cnt = 0
+
    return
 end
 function Module:getEngine()

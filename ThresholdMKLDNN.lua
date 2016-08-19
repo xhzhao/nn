@@ -12,13 +12,6 @@ function Threshold:__init(th,v,ip)
    if (ip and type(ip) ~= 'boolean') then
       error('in-place flag must be boolean')
    end
-   self.mkldnnInitOk = 0
-   self.initStep = 0
-   self.compare = sys.compare or false
-   self.timerEnable = sys.timerEnable or false
-   self.timeForward = 0
-   self.timeBackward = 0
-   self.cnt = 0
    self:setEngine(1)
 
    self:validateParameters()
@@ -73,7 +66,8 @@ function Threshold:updateOutput(input)
    end
    if self.timerEnable then
         print("mkldnn Threshold forward time = ,",self.timeForward," backward time =",self.timeBackward)
-        sys.reluTime = sys.reluTime + self.timeForward + self.timeBackward
+        sys.reluTime_forward = sys.reluTime_forward + self.timeForward
+        sys.reluTime_backward = sys.reluTime_backward + self.timeBackward
         self.timeForward = sys.clock() - startTime
         self.cnt = self.cnt + 1
    end

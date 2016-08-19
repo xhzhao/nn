@@ -11,12 +11,7 @@ function Linear:__init(inputSize, outputSize, bias)
    end
    self:reset()
 
-   self.timerEnable = sys.timerEnable
-   self.timeForward = 0
-   self.timeBackward1 = 0
-   self.timeBackward2 = 0
-   self.cnt = 0
-
+   self:setEngine(0)
 
 end
 
@@ -82,7 +77,8 @@ function Linear:updateOutput(input)
 
    if self.timerEnable then
                 print("Linear forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
-                sys.linearTime = sys.linearTime + (self.timeForward + self.timeBackward1+ self.timeBackward2)
+                sys.linearTime_forward = sys.linearTime_forward + self.timeForward
+                sys.linearTime_backward = sys.linearTime_backward + self.timeBackward1+ self.timeBackward2
                 self.timeForward = (sys.clock() - startTime)
                 self.cnt = self.cnt + 1
    end

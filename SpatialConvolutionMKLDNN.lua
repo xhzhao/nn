@@ -22,19 +22,7 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
    self.gradWeight = torch.Tensor(nOutputPlane, nInputPlane*kH*kW)
    self.gradBias = torch.Tensor(nOutputPlane)
 
-   -- xhzhao add:
-   self.mkldnnInitOk = 0
-   self.initStep = 0
-   self.compare = sys.compare or false
-   self.timerEnable = sys.timerEnable or false
-   self.timeForward = 0
-   self.timeBackward1 = 0
-   self.timeBackward2 = 0
-   self.cnt = 0
    self:setEngine(1)
-
-   --print ("mkldnn SpatialConvolutionMM init, compare = ",self.compare, "timerEnable = ",self.timerEnable)
-
 
    self:reset()
 end
@@ -156,7 +144,8 @@ function SpatialConvolutionMM:updateOutput(input)
    end
    if self.timerEnable then
         print("mkldnn conv forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
-        sys.convTime = sys.convTime + (self.timeForward + self.timeBackward1+ self.timeBackward2)
+        sys.convTime_forward = sys.convTime_forward + self.timeForward
+        sys.convTime_backward = sys.convTime_backward + self.timeBackward1+ self.timeBackward2
         self.timeForward = (sys.clock() - startTime)
         self.cnt = self.cnt + 1
    end

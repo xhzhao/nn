@@ -5,24 +5,29 @@ function Concat:__init(dimension)
    self.size = torch.LongStorage()
    self.dimension = dimension
 
-   self.timerEnable = sys.timerEnable
-   self.timeForward = 0
-   self.timeBackward1 = 0
-   self.timeBackward2 = 0
-   self.cnt = 0
 
+   self:setEngine(1)
 
 end
 
 function Concat:updateOutput(input)
 
+   if self.initStep == 0 then
+   	self.initStep = 1
+   else
+	self.mkldnnInitOk = 1
+	self.dnnPrimitives = torch.LongTensor(10)
+   end
+
     local iterStartTime
     local iterForward
     local forwardTime = 0
    local outs = {}
+   local outputTable = {}
    for i=1,#self.modules do
       local currentOutput = self:rethrowErrors(self.modules[i], i, 'updateOutput', input)
       outs[i] = currentOutput
+      outputTable = currentOutput:cdata()
       --print("module type =",self.modules[i].modules[1],"module engine = ",self.modules[i].modules[1]:getEngine()," module.kW = ",self.modules[i].modules[1].kW)
       if self.timerEnable then
         iterStartTime = sys.clock()
@@ -56,14 +61,23 @@ function Concat:updateOutput(input)
       offset = offset + currentOutput:size(self.dimension)
    end
     if self.timerEnable then
-      iterForward = sys.clock() - iterStartTime
-      forwardTime = forwardTime + iterForward
- 
+        iterForward = sys.clock() - iterStartTime
+        forwardTime = forwardTime + iterForward
         print("Concat forward time =         ,",self.timeForward," backward time =",self.timeBackward1+self.timeBackward2)
-        sys.concatTime2 = sys.concatTime2 + (self.timeForward + self.timeBackward1+ self.timeBackward2)
+        sys.concatTime_forward = sys.concatTime_forward +self.timeForward 
+        sys.concatTime_backward = sys.concatTime_backward + (self.timeBackward1+ self.timeBackward2)
         self.timeForward = forwardTime
         self.cnt = self.cnt + 1
    end
+
+   -- use MKLDNN to concat
+   --print("Concat start to call MKLDNN")
+   --print("outputTable = ", outputTable)
+   
+--   input.THNN.Concat_MKLDNN_updateOutput(outputTable[1], self.output:cdata(), tonumber(#self.modules), self.dnnPrimitives:cdata(),self.mkldnnInitOk)
+   --input.THNN.Concat_MKLDNN_updateOutput(input:cdata(), input:cdata(), 1, input:cdata(),self.mkldnnInitOk)
+ 
+   --print("Concat MKLDNN end")
    return self.output
 end
 
