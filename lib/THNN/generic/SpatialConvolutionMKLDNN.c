@@ -115,7 +115,9 @@ void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
 	if(!dnnLayoutCompare_F32(mkldnnLayout, lt_user_input))
 	{
 #if CONVERSION_LOG
-		fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW called: N=%d,C=%d,H=%d,W=%d, mkldnnLayout = 0x%x\n", N,inC,inH,inW,mkldnnLayout);
+		int input_size = dnnLayoutGetMemorySize_F32(mkldnnLayout);
+		int output_size = dnnLayoutGetMemorySize_F32(lt_user_input);
+		fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW called: N=%d,C=%d,H=%d,W=%d, mkldnnLayout = 0x%x, input_size = %d, output_size = %d\n", N,inC,inH,inW,mkldnnLayout,input_size,output_size);
 #endif
 		CHECK_ERR( dnnConversionCreate_F32(&cv_BacktoNCHW, mkldnnLayout, lt_user_input), err );
 		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer), lt_user_input), err );
