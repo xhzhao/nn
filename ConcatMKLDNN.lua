@@ -6,7 +6,7 @@ function Concat:__init(dimension)
    self.dimension = dimension
 
 
-   self:setEngine(1)
+   self:setEngine(0)
 
 end
 
@@ -14,14 +14,13 @@ function Concat:updateOutput(input)
 
    if self.initStep == 0 then
    	self.initStep = 1
+	self.dnnPrimitives = torch.LongTensor(20)
    else
 	self.mkldnnInitOk = 1
-	self.dnnPrimitives = torch.LongTensor(10)
    end
-
-    local iterStartTime
-    local iterForward
-    local forwardTime = 0
+   local iterStartTime
+   local iterForward
+   local forwardTime = 0
    local outs = {}
    local outputTable = {}
    for i=1,#self.modules do
@@ -32,15 +31,12 @@ function Concat:updateOutput(input)
       if self.timerEnable then
         iterStartTime = sys.clock()
       end
-
-      self:CheckOutputLayout(currentOutput)
+      self:ConvertLayoutBackToNCHW(currentOutput, i)
       if i == 1 then
          self.size:resize(currentOutput:dim()):copy(currentOutput:size())
-	 --print("Concat updateOutput: change input layout and buffer to the internal version")
 	 if input:cdata().mkldnnLayout == 0 then
 		 input.THNN.MKLDNN_set_tensor(input:cdata(),self.modules[1].modules[1].dnnPrimitives:cdata().storage.data[19],self.modules[1].modules[1].dnnPrimitives:cdata().storage.data[0] )
 	 end
-	 --print("Concat change end")
       else
          self.size[self.dimension] = self.size[self.dimension] + currentOutput:size(self.dimension)
       end
@@ -77,7 +73,7 @@ function Concat:updateOutput(input)
 --   input.THNN.Concat_MKLDNN_updateOutput(outputTable[1], self.output:cdata(), tonumber(#self.modules), self.dnnPrimitives:cdata(),self.mkldnnInitOk)
    --input.THNN.Concat_MKLDNN_updateOutput(input:cdata(), input:cdata(), 1, input:cdata(),self.mkldnnInitOk)
  
-   --print("Concat MKLDNN end")
+   --print("ConcatMKLDNN:updateOutput end")
    return self.output
 end
 
@@ -176,7 +172,6 @@ function Concat:accGradParameters(input, gradOutput, scale)
 end
 
 function Concat:backward(input, gradOutput, scale)
-  print(" Concat:backward ")
    self.gradInput:resizeAs(input)
    scale = scale or 1
    local offset = 1

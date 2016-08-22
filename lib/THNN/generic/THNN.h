@@ -20,7 +20,10 @@ TH_API void THNN_(MKLDNN_set_tensor)(
 	);
 TH_API void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
           THNNState * state,
-          THTensor * input
+          THTensor * input,
+          THLongTensor *primitives,
+          int i,
+          int initOk
 	);
 
 /*Convolution*/
@@ -177,7 +180,13 @@ TH_API void THNN_(BatchNormalization_MKLDNN_backward)(
   THLongTensor *primitives,
           int initOk);
 
-
+TH_API void THNN_(Concat_MKLDNN_updateOutput)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *output,
+          int  moduleNum,
+          THLongTensor *primitives,
+          int initOk);
 
 ////////////////////////////////////////////////////////////////////////////xhzhao add end.
 

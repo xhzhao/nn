@@ -13,6 +13,7 @@ function Module:setEngine(engineType)
       -- xhzhao add:
       self.mkldnnInitOk = 0
       self.initStep = 0
+      self.dnnPrimitives = 0
       if sys then
          self.compare = sys.compare or false
          self.timerEnable = sys.timerEnable or false
@@ -31,10 +32,12 @@ end
 function Module:getEngine()
    return self.engine
 end
-function Module:CheckInputLayout(input)
+function Module:ConvertLayoutBackToNCHW(input, i)
+   --print("Module:ConvertLayoutBackToNCHW start")
    if self.engine == 0 and input:cdata().mkldnnLayout ~= 0 then
-      input.THNN.MKLDNN_ConvertLayoutBackToNCHW(input:cdata())
+      input.THNN.MKLDNN_ConvertLayoutBackToNCHW(input:cdata(),self.dnnPrimitives:cdata(),i,self.mkldnnInitOk)
    end
+   --print("Module:ConvertLayoutBackToNCHW end")
    return 
 end
 

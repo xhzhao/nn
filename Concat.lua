@@ -13,6 +13,13 @@ end
 
 function Concat:updateOutput(input)
 
+   if self.initStep == 0 then
+   	self.initStep = 1
+	self.dnnPrimitives = torch.LongTensor(20)
+   else
+	self.mkldnnInitOk = 1
+   end
+
     local iterStartTime
     local iterForward
     local forwardTime = 0
@@ -25,7 +32,7 @@ function Concat:updateOutput(input)
         iterStartTime = sys.clock()
       end
 
-      self:CheckOutputLayout(currentOutput)
+      self:ConvertLayoutBackToNCHW(currentOutput, i)
       if i == 1 then
          self.size:resize(currentOutput:dim()):copy(currentOutput:size())
       else

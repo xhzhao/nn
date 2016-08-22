@@ -11,6 +11,12 @@ end
 
 function ConcatTable:updateOutput(input)
    local startTime
+   if self.initStep == 0 then
+   	self.initStep = 1
+	self.dnnPrimitives = torch.LongTensor(20)
+   else
+	self.mkldnnInitOk = 1
+   end
 
    for i=1,#self.modules do
       self.output[i] = self:rethrowErrors(self.modules[i], i, 'updateOutput', input)
@@ -20,11 +26,10 @@ function ConcatTable:updateOutput(input)
    end
 
    for i=1,#self.modules do
-      self:CheckOutputLayout(self.output[i])
+      self:ConvertLayoutBackToNCHW(self.output[i],i)
    end
 
    if self.timerEnable then
-      
       print("ConcatTable  forward time =         ",self.timeForward," backward time =",self.timeBackward)
       sys.concatTableTime_forward = sys.concatTableTime_forward + self.timeForward 
       sys.concatTableTime_backward = sys.concatTableTime_backward + self.timeBackward

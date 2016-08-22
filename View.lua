@@ -27,6 +27,7 @@ function View:__init(...)
    parent.__init(self)
    self:resetSize(...)
    self.numInputDims = nil
+   self:setEngine(0)
 end
 
 function View:setNumInputDims(numInputDims)
@@ -75,7 +76,13 @@ local function batchsize(input, size, numInputDims, numElements)
 end
 
 function View:updateOutput(input)
-   self:CheckInputLayout(input)
+   if self.initStep == 0 then
+   	self.initStep = 1
+	self.dnnPrimitives = torch.LongTensor(20)
+   else
+	self.mkldnnInitOk = 1
+   end
+   self:ConvertLayoutBackToNCHW(input,0)
    self.output = self.output or input.new()
    local bsz = batchsize(input, self.size, self.numInputDims, self.numElements)
    if bsz then

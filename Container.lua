@@ -7,13 +7,6 @@ function Container:__init(...)
     self.modules = {}
 end
 
-function Container:CheckOutputLayout(input)
-   if input:cdata().mkldnnLayout ~= 0 then
-      input.THNN.MKLDNN_ConvertLayoutBackToNCHW(input:cdata())
-   end
-   return 
-end
-
 function Container:add(module)
     table.insert(self.modules, module)
     return self

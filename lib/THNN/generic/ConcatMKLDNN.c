@@ -39,13 +39,13 @@ static void THNN_(Concat_MKLDNN_init_backward)(
 
 void THNN_(Concat_MKLDNN_updateOutput)(
           THNNState *state,
-          THTensor **input,
+          THTensor *input,
           THTensor *output,
           int  moduleNum,
           THLongTensor *primitives,
           int initOk)
 {
-
+	fprintf(stderr, "Concat_MKLDNN_updateOutput start. \n");
 }
 
 void THNN_(Concat_MKLDNN_updateGradInput)(
