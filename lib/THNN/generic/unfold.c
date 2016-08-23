@@ -25,18 +25,17 @@ void THNN_(unfolded_acc)(
           int outputHeight)
 {
 #ifdef _WIN32
-  LONG_PTR nip;
+  LONG_PTR k;
 #else
-  size_t nip;
+  size_t k;
 #endif
 
-  long k;
   real *input_data = THTensor_(data)(input);
   real *finput_data = THTensor_(data)(finput);
 
 #pragma omp parallel for private(k)
   for(k = 0; k < nInputPlane*kH*kW; k++) {
-     nip = k / (kH*kW);
+    size_t nip = k / (kH*kW);
     size_t rest = k % (kH*kW);
     size_t kh = rest / kW;
     size_t kw = rest % kW;
