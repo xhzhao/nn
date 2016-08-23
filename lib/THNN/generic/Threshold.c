@@ -11,50 +11,58 @@ void THNN_(Threshold_updateOutput)(
           real val,
           bool inplace)
 {
-  if (inplace)
+ 
+  if(input->nDimension >= 1)
   {
-    if ( THTensor_(isContiguous)(input) )
+    long T = input->size[0];
+    long t;
+
+    if (inplace)
     {
-      real *tp = THTensor_(data)(input);
-      long sz = THTensor_(nElement)(input);
-      long j;
-      real z;
-      #pragma omp parallel for if(sz > TH_OMP_THRESHOLD) private(j)
-      for (j=0; j<sz; j++)
+#pragma omp parallel for if(T > TH_OMP_THRESHOLD) private(t)
+      for(t = 0; t < T; t++)
       {
-        if (tp[j] <= threshold)
-          tp[j] = val;
+        THTensor *input_t = THTensor_(newSelect)(input, 0, t);  //slice and select
+
+        TH_TENSOR_APPLY(real, input_t,
+          if (*input_t_data <= threshold)
+            *input_t_data = val;
+        );
+        THTensor_(free)(input_t);
+        
       }
+      THTensor_(set)(output, input);
     }
     else
+    {
+      THTensor_(resizeAs)(output, input);
+#pragma omp parallel for if(T > TH_OMP_THRESHOLD) private(t)
+      for(t = 0; t < T; t++)
+      {
+        THTensor *input_t = THTensor_(newSelect)(input, 0, t);  //slice and select
+        THTensor *output_t = THTensor_(newSelect)(output, 0, t);
+        TH_TENSOR_APPLY2(real, output_t, real, input_t,
+          *output_t_data = (*input_t_data > threshold) ? *input_t_data : val;
+        );
+
+      THTensor_(free)(input_t);
+      THTensor_(free)(output_t);
+      }
+    }
+  }
+  else
+  {
+     if (inplace)
     {
       TH_TENSOR_APPLY(real, input,
         if (*input_data <= threshold)
           *input_data = val;
-            );
-    }
-    THTensor_(set)(output, input);
-  }
-  else
-  {
-    THTensor_(resizeAs)(output, input);
-    int dimI = input->nDimension;
-    int dimO = output->nDimension;
-    if ( (dimI==dimO) && THTensor_(isContiguous)(input) && THTensor_(isContiguous)(output) && THTensor_(nElement)(input) == THTensor_(nElement)(output))
-    {
-      real *tp = THTensor_(data)(input);
-      real *rp = THTensor_(data)(output);
-      long sz = THTensor_(nElement)(input);
-      long j;
-      real z;
-      #pragma omp parallel for if(sz > TH_OMP_THRESHOLD) private(j) 
-      for (j=0; j<sz; j++)
-      {
-        rp[j] = (tp[j] > threshold) ? tp[j] : val;
-      }
+      );
+      THTensor_(set)(output, input);
     }
     else
     {
+      THTensor_(resizeAs)(output, input);
       TH_TENSOR_APPLY2(real, output, real, input,
         *output_data = (*input_data > threshold) ? *input_data : val;
       );
@@ -71,59 +79,66 @@ void THNN_(Threshold_updateGradInput)(
           real threshold,
           bool inplace)
 {
-  if (inplace)
+   if(input->nDimension >= 2)
   {
-    int dimI = input->nDimension;
-    int dimO = gradOutput->nDimension;
-    if ( (dimI==dimO) && THTensor_(isContiguous)(input) && THTensor_(isContiguous)(gradOutput) && THTensor_(nElement)(input) == THTensor_(nElement)(gradOutput))
+  
+    long T = input->size[0];
+    long t;
+
+
+    if (inplace)
     {
-      real *tp = THTensor_(data)(input);
-      real *rp = THTensor_(data)(gradOutput);
-      long sz = THTensor_(nElement)(input);
-      long j;
-      real z;
-      #pragma omp parallel for if(sz > TH_OMP_THRESHOLD) private(j) 
-      for (j=0; j<sz; j++)
+#pragma omp parallel for if(T > TH_OMP_THRESHOLD) private(t)
+      for(t = 0; t < T; t++)
       {
-        if (tp[j] <= threshold)
-          rp[j] = 0;
+        THTensor *input_t = THTensor_(newSelect)(input, 0, t);  //slice and select
+        THTensor *gradOutput_t = THTensor_(newSelect)(gradOutput, 0, t);
+        
+        TH_TENSOR_APPLY2(real, gradOutput_t, real, input_t,
+          if ((*input_t_data) <= threshold)
+            *gradOutput_t_data = 0;
+        );
+        THTensor_(free)(input_t);
+        THTensor_(free)(gradOutput_t);
+        
       }
+      THTensor_(set)(gradInput, gradOutput);
     }
     else
+    {
+      THTensor_(resizeAs)(gradInput, input);
+#pragma omp parallel for if(T > TH_OMP_THRESHOLD) private(t)
+      for(t = 0; t < T; t++)
+      {
+        THTensor *input_t = THTensor_(newSelect)(input, 0, t);  //slice and select
+        THTensor *gradOutput_t = THTensor_(newSelect)(gradOutput, 0, t);
+        THTensor *gradInput_t = THTensor_(newSelect)(gradInput, 0, t);
+        TH_TENSOR_APPLY3(real, gradInput_t, real, gradOutput_t, real, input_t,
+          if ((*input_t_data) > threshold)
+            *gradInput_t_data = *gradOutput_t_data;
+          else
+            *gradInput_t_data = 0;
+        );
+        THTensor_(free)(input_t);
+        THTensor_(free)(gradInput_t);
+        THTensor_(free)(gradOutput_t);
+      }
+      
+    }
+  } 
+  else
+  {
+    if (inplace)
     {
       TH_TENSOR_APPLY2(real, gradOutput, real, input,
         if ((*input_data) <= threshold)
           *gradOutput_data = 0;
       );
-    }
-
-    THTensor_(set)(gradInput, gradOutput);
-  }
-  else
-  {
-    THTensor_(resizeAs)(gradInput, input);
-    int dimI = input->nDimension;
-    int dimO = gradOutput->nDimension;
-    int dimG = gradInput->nDimension;
-    if ( (dimI==dimO) && (dimI == dimG) && THTensor_(isContiguous)(input) && THTensor_(isContiguous)(gradOutput) && THTensor_(isContiguous)(gradInput) && THTensor_(nElement)(input) == THTensor_(nElement)(gradOutput) && THTensor_(nElement)(input) == THTensor_(nElement)(gradInput))
-    {
-      real *tp = THTensor_(data)(input);
-      real *rp = THTensor_(data)(gradOutput);
-      real *sp = THTensor_(data)(gradInput);
-      long sz = THTensor_(nElement)(input);
-      long j;
-      real z;
-      #pragma omp parallel for if(sz > TH_OMP_THRESHOLD) private(j)
-      for(j=0; j < sz; j++)
-      {
-        if (tp[j] > threshold)
-          sp[j] = rp[j];
-        else
-          sp[j] = 0;
-      }
+      THTensor_(set)(gradInput, gradOutput);
     }
     else
     {
+      THTensor_(resizeAs)(gradInput, input);
       TH_TENSOR_APPLY3(real, gradInput, real, gradOutput, real, input,
         if ((*input_data) > threshold)
           *gradInput_data = *gradOutput_data;
@@ -131,9 +146,8 @@ void THNN_(Threshold_updateGradInput)(
           *gradInput_data = 0;
       );
     }
-
   }
-
+  
 }
 
 #endif
