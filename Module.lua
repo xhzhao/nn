@@ -59,9 +59,6 @@ function Module:updateOutput(input)
 end
 
 function Module:forward(input)
-   if self.engine == 0  then
-      self:CheckInputLayout(input)
-   end
    return self:updateOutput(input)
 end
 

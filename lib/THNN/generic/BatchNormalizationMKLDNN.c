@@ -121,7 +121,8 @@ void THNN_(BatchNormalization_MKLDNN_updateOutput)(
 {
   long nInput = THTensor_(size)(input, 1);
   long f,n = THTensor_(nElement)(input) / nInput;
-
+	struct timeval start,mid,end;
+	gettimeofday(&start,NULL);
 	dnnError_t err;
 	int N = input->size[0];
 	int inC = input->size[1];
@@ -154,7 +155,7 @@ void THNN_(BatchNormalization_MKLDNN_updateOutput)(
 		buffer_forward_scaleshift[i] = weight ? THTensor_(get1d)(weight, i) : 1;
 		buffer_forward_scaleshift[i+inC] = bias ? THTensor_(get1d)(bias, i) : 0;
 	}
-
+	gettimeofday(&mid,NULL);
   	void* BatchNorm_res[dnnResourceNumber];
 	BatchNorm_res[dnnResourceSrc] = THTensor_(data)(input);
 	BatchNorm_res[dnnResourceDst] = THTensor_(data)(output);
@@ -164,7 +165,12 @@ void THNN_(BatchNormalization_MKLDNN_updateOutput)(
 	CHECK_ERR( dnnExecute_F32(bn_forward, (void*)BatchNorm_res), err );
 	output->mkldnnLayout = (long long)primitives->storage->data[BN_LAYOUT_FORWARD_OUTPUT];
 	//output->storageOffset = 0;
-	
+#if LOG_ENABLE
+	gettimeofday(&end,NULL);
+	double duration1 = (mid.tv_sec - start.tv_sec) * 1000 + (double)(mid.tv_usec - start.tv_usec) /1000;
+	double duration2 = (end.tv_sec - mid.tv_sec) * 1000 + (double)(end.tv_usec - mid.tv_usec) /1000;
+	fprintf(stderr,"	BatchNorm MKLDNN time1 = %.2f ms, time2 = %.2f md \n",duration1,duration2);
+#endif
 }
 
 void THNN_(BatchNormalization_MKLDNN_backward)(
