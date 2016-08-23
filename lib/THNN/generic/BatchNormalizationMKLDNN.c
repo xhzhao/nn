@@ -169,7 +169,7 @@ void THNN_(BatchNormalization_MKLDNN_updateOutput)(
 	gettimeofday(&end,NULL);
 	double duration1 = (mid.tv_sec - start.tv_sec) * 1000 + (double)(mid.tv_usec - start.tv_usec) /1000;
 	double duration2 = (end.tv_sec - mid.tv_sec) * 1000 + (double)(end.tv_usec - mid.tv_usec) /1000;
-	fprintf(stderr,"	BatchNorm MKLDNN time1 = %.2f ms, time2 = %.2f md \n",duration1,duration2);
+	fprintf(stderr,"	BatchNorm MKLDNN time1 = %.2f ms, time2 = %.2f ms \n",duration1,duration2);
 #endif
 }
 

@@ -123,6 +123,9 @@ function BN:updateOutput(input)
    self.save_std = self.save_std or input.new()
    self.save_std:resizeAs(self.running_var)
 
+   if self.timerEnable then
+   	elementwiseTime = sys.clock()
+   end
    if self.compare then
 	   input.THNN.BatchNormalization_updateOutput(
 	      input:cdata(),
@@ -170,7 +173,7 @@ function BN:updateOutput(input)
 	      self.dnnPrimitives:cdata(),self.mkldnnInitOk)
    end
    if self.timerEnable then
-	print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward)
+	print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward, ", elementwiseTime = ",elementwiseTime)
 	sys.sbnTime_forward = sys.sbnTime_forward + self.timeForward
 	sys.sbnTime_backward = sys.sbnTime_backward + self.timeBackward
 	self.timeForward =  (sys.clock() - startTime)
