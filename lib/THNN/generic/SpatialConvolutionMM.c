@@ -2,7 +2,7 @@
 #define TH_GENERIC_FILE "generic/SpatialConvolutionMM.c"
 #else
 
-#define MINI_BATCH_SIZE 10
+#define TH_OMP_THRESHOLD 10
 
 static void THNN_(SpatialConvolutionMM_updateOutput_frame)(
           THTensor *input,
@@ -32,7 +32,7 @@ static void THNN_(SpatialConvolutionMM_updateOutput_frame)(
                                          nOutputPlane, -1,
                                          outputHeight*outputWidth, -1);
   if (bias) {
-  #pragma omp parallel for if(nOutputPlane > MINI_BATCH_SIZE) private(i) 
+  #pragma omp parallel for if(nOutputPlane > TH_OMP_THRESHOLD) private(i) 
     for(i = 0; i < nOutputPlane; i++)
         THVector_(fill)(output->storage->data+output->storageOffset+output->stride[0]*i, THTensor_(get1d)(bias, i), outputHeight*outputWidth);
   } else {
@@ -112,7 +112,7 @@ void THNN_(SpatialConvolutionMM_updateOutput)(
     THTensor_(resize3d)(finput, T, kW*kH*nInputPlane, outputHeight*outputWidth);
     THTensor_(resize4d)(output, T, nOutputPlane, outputHeight, outputWidth);
 
-#pragma omp parallel for if(T > MINI_BATCH_SIZE)  private(t)
+#pragma omp parallel for if(T > TH_OMP_THRESHOLD)  private(t)
     for(t = 0; t < T; t++)
     {
       THTensor *input_t = THTensor_(newSelect)(input, 0, t);
@@ -188,7 +188,7 @@ void THNN_(SpatialConvolutionMM_updateGradInput)(
     long T = input->size[0];
     long t;
 
-#pragma omp parallel for if(T > MINI_BATCH_SIZE) private(t)
+#pragma omp parallel for if(T > TH_OMP_THRESHOLD) private(t)
     for(t = 0; t < T; t++)
     {
       THTensor *gradInput_t = THTensor_(newSelect)(gradInput, 0, t);
@@ -223,7 +223,7 @@ static void THNN_(SpatialConvolutionMM_accGradParameters_frame)(
   THTensor_(transpose)(finput, finput, 0, 1);
 
   if (gradBias) {
-#pragma omp parallel for if(gradBias->size[0] > MINI_BATCH_SIZE) private(t)
+#pragma omp parallel for if(gradBias->size[0] > TH_OMP_THRESHOLD) private(t)
     for(i = 0; i < gradBias->size[0]; i++)
     {
       long k;
@@ -267,7 +267,7 @@ void THNN_(SpatialConvolutionMM_accGradParameters)(
   {
     long T = input->size[0];
     long t;
-#pragma omp parallel for if(T > MINI_BATCH_SIZE) private(t)
+#pragma omp parallel for if(T > TH_OMP_THRESHOLD) private(t)
     for(t = 0; t < T; t++)
     {
       THTensor *gradOutput_t = THTensor_(newSelect)(gradOutput, 0, t);
