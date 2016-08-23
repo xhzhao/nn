@@ -52,9 +52,32 @@ void THNN_(MSECriterion_updateGradInput)(
   real norm = (sizeAverage ? 2./((real)THTensor_(nElement)(input)) : 2.);
 
   THTensor_(resizeAs)(gradInput, input);
-  TH_TENSOR_APPLY3(real, gradInput, real, input, real, target,
-    *gradInput_data = norm * (*input_data - *target_data);
-  );
+  int dimI = input->nDimension;
+  int dimO = target->nDimension;
+  int dimG = gradInput->nDimension;
+
+  if ( (dimI==dimO) && (dimI == dimG) && THTensor_(isContiguous)(input) && THTensor_(isContiguous)(target) && THTensor_(isContiguous)(gradInput) && THTensor_(nElement)(input) == THTensor_(nElement)(target) && THTensor_(nElement)(input) == THTensor_(nElement)(gradInput))
+  {
+    real *tp = THTensor_(data)(input);
+    real *rp = THTensor_(data)(target);
+    real *sp = THTensor_(data)(gradInput);
+    long sz = THTensor_(nElement)(input);
+    long j;
+    real z;
+    #pragma omp parallel for if(sz > TH_OMP_THRESHOLD) private(j)
+
+    for(j=0; j < sz; j++)
+    {
+      sp[j] = norm * (tp[j] - rp[j]);   //input-target
+    }
+  }
+  else
+  {
+    THTensor_(resizeAs)(gradInput, input);
+    TH_TENSOR_APPLY3(real, gradInput, real, input, real, target,
+      *gradInput_data = norm * (*input_data - *target_data);
+    );
+  }
 }
 
 #endif
