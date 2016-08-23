@@ -173,7 +173,7 @@ function BN:updateOutput(input)
 	      self.dnnPrimitives:cdata(),self.mkldnnInitOk)
    end
    if self.timerEnable then
-	print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward, ", elementwiseTime = ",elementwiseTime)
+	print("BatchNormalication  forward time =         ",self.timeForward," backward time =",self.timeBackward, ", elementwiseTime = ",sys.clock() - elementwiseTime)
 	sys.sbnTime_forward = sys.sbnTime_forward + self.timeForward
 	sys.sbnTime_backward = sys.sbnTime_backward + self.timeBackward
 	self.timeForward =  (sys.clock() - startTime)
