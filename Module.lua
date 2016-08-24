@@ -18,8 +18,8 @@ function Module:setEngine(engineType)
          self.compare = sys.compare or false
          self.timerEnable = sys.timerEnable or false
       else
-         self.compare = sys.compare or false
-         self.timerEnable = sys.timerEnable or false
+         self.compare =  false
+         self.timerEnable =  false
       end
       self.timeForward = 0
       self.timeBackward = 0
