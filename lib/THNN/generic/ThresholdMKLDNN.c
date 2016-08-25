@@ -71,7 +71,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(
 	}
 
 
-	fprintf(stderr ,"MKLDNN RELU forward init: relu_backward = 0x%x\n", relu_backward);
+	//fprintf(stderr ,"MKLDNN RELU forward init: relu_backward = 0x%x\n", relu_backward);
 	primitives->storage->data[RELU_FORWARD] = (long long)relu_forward;
 	primitives->storage->data[RELU_BACKWARD] = (long long)relu_backward;
 	primitives->storage->data[RELU_LAYOUT_FORWARD_OUTPUT] = (long long)lt_relu_forward_output;
