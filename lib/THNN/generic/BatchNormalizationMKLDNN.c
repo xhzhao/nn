@@ -59,7 +59,9 @@ static void THNN_(BatchNormalization_MKLDNN_init_forward)(
 	int size2 = inW*inH*inC*N*4;
 	if(size1 == size2)
 	{
+#if CONVERSION_LOG
 		fprintf(stderr ,"MKLDNN BN forward ouput layout match OK\n");
+#endif
 	}
 	else
 	{
@@ -70,7 +72,9 @@ static void THNN_(BatchNormalization_MKLDNN_init_forward)(
 	size1 = dnnLayoutGetMemorySize_F32(lt_bn_backward_input);
 	if(size1 == size2)
 	{
+#if CONVERSION_LOG
 		fprintf(stderr ,"MKLDNN MaxPooling bwddata input layout match OK\n");
+#endif
 	}
 	else
 	{

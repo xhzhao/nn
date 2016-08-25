@@ -43,8 +43,9 @@ void THNN_(MKLDNN_set_tensor)(
 	  long long newLayout
 	)
 {
-	t->storage->data = (real * )newBuffer;
+	t->storage->data = (real * )newBuffer; //memory leak ??? need to check
 	t->mkldnnLayout = newLayout;
+	THStorage_(setMKLDNN)(t->storage);
 }
 
 void THNN_(SpatialConvolutionMM_compare)(
@@ -252,7 +253,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 		int size2 = dnnLayoutGetMemorySize_F32(lt_user_output);
 		if(size1 == size2 && size2 == (outW*outH*outC*N*4))
 		{
+#if CONVERSION_LOG
 			fprintf(stderr ,"MKLDNN Convolution forward ouput layout match OK\n");
+#endif
 		}
 		else
 		{
@@ -381,7 +384,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
                 int size2 = dnnLayoutGetMemorySize_F32(lt_user_input);
                 if(size1 == size2 && size2 == (inW*inH*inC*N*4))
                 {
+#if CONVERSION_LOG
                         fprintf(stderr ,"MKLDNN Convolution bwddata input layout match OK\n");
+#endif
                 }
                 else
                 {

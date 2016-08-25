@@ -61,7 +61,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(
 	int size2 = outW*outH*outC*N*4;
 	if(size1 == size2)
 	{
+#if CONVERSION_LOG
 		fprintf(stderr ,"MKLDNN Relu forward ouput layout match OK\n");
+#endif
 	}
 	else
 	{
@@ -114,7 +116,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 		fprintf(stderr ,"MKLDNN RELU get output layout OK\n");
 #endif
 	}
-	fprintf(stderr ,"MKLDNN RELU bwd data: relu_backward = 0x%x\n", relu_backward);
+	//fprintf(stderr ,"MKLDNN RELU bwd data: relu_backward = 0x%x\n", relu_backward);
 	real * buffer_backward_input = NULL;
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_out, relu_backward, dnnResourceDiffDst), err );
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_src, relu_backward, dnnResourceDiffSrc), err );
@@ -123,7 +125,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 	int size2 = inW*inH*inC*N*4;
 	if(size1 == size2)
 	{
+#if CONVERSION_LOG
 		fprintf(stderr ,"MKLDNN Relu bwddata input layout match OK\n");
+#endif
 	}
 	else
 	{

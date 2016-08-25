@@ -85,7 +85,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 	int size2 = outW*outH*outC*N*4;
 	if(size1 == size2)
 	{
+#if CONVERSION_LOG
 		fprintf(stderr ,"MKLDNN MaxPooling forward ouput layout match OK\n");
+#endif
 	}
 	else
 	{
@@ -187,7 +189,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 	int size2 = inW*inH*inC*N*4;
 	if(size1 == size2)
 	{
+#if CONVERSION_LOG
 		fprintf(stderr ,"MKLDNN MaxPooling bwddata input layout match OK\n");
+#endif
 	}
 	else
 	{
