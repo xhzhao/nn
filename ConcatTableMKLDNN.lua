@@ -1,4 +1,4 @@
-local ConcatTable, parent = torch.class('nn.ConcatTable', 'nn.Container')
+local ConcatTable, parent = torch.class('nn.ConcatTableMKLDNN', 'nn.Container')
 
 function ConcatTable:__init()
    parent.__init(self)
@@ -25,6 +25,9 @@ function ConcatTable:updateOutput(input)
         startTime = sys.clock()                                                                                    
    end
 
+   for i=1,#self.modules do
+      self:ConvertLayoutBackToNCHW(self.output[i],i)
+   end
 
    if self.timerEnable then
       print("ConcatTable  forward time =         ",self.timeForward," backward time =",self.timeBackward)

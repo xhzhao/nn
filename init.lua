@@ -179,5 +179,6 @@ require('nn.ReLUMKLDNN')
 require('nn.BatchNormalizationMKLDNN')
 require('nn.SpatialBatchNormalizationMKLDNN')
 require('nn.ConcatMKLDNN')
+require('nn.ConcatTableMKLDNN')
 
 return nn

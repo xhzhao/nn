@@ -161,7 +161,6 @@ function Concat:accGradParameters(input, gradOutput, scale)
 end
 
 function Concat:backward(input, gradOutput, scale)
-  print(" Concat:backward ")
    self.gradInput:resizeAs(input)
    scale = scale or 1
    local offset = 1
