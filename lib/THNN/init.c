@@ -192,3 +192,6 @@
 
 #include "generic/ConcatMKLDNN.c"
 #include "THGenerateFloatTypes.h"
+
+#include "generic/LRNMKLDNN.c"
+#include "THGenerateFloatTypes.h"

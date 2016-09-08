@@ -162,7 +162,7 @@ TH_API void THNN_(SpatialAveragePooling_MKLDNN_updateGradInput)(
           THLongTensor *primitives,
           int initOk);
 
-
+/*BatchNormalization*/
 TH_API void THNN_(BatchNormalization_MKLDNN_updateOutput)(
   THNNState *state, THTensor *input, THTensor *output,
   THTensor *weight, THTensor *bias,
@@ -180,6 +180,8 @@ TH_API void THNN_(BatchNormalization_MKLDNN_backward)(
   THLongTensor *primitives,
           int initOk);
 
+
+/*Concat*/
 TH_API void THNN_(Concat_MKLDNN_updateOutput)(
           THNNState *state,
           THTensor *input,
@@ -187,6 +189,19 @@ TH_API void THNN_(Concat_MKLDNN_updateOutput)(
           int  moduleNum,
           THLongTensor *primitives,
           int initOk);
+
+
+/*LRN*/
+TH_API void THNN_(CrossChannelLRN_MKLDNN_updateOutput)(
+  THNNState *state, THTensor *input, THTensor *output,
+  int size, float alpha, float beta, float k,
+  THLongTensor *primitives,int initOk);
+
+TH_API void THNN_(CrossChannelLRN_MKLDNN_backward)(
+  THNNState *state, THTensor *input, THTensor *gradOutput, THTensor *gradInput,
+  int size, float alpha, float beta, float k,
+  THLongTensor *primitives,int initOk);
+
 
 ////////////////////////////////////////////////////////////////////////////xhzhao add end.
 

@@ -556,6 +556,19 @@ typedef enum {
     BUFFER_BN_BACKWARD_INPUT		= 14
 } mkldnnBNIndex_t;
 
+typedef enum {
+    LRN_LAYOUT_INPUT			= 0,
+    LRN_LAYOUT_OUTPUT			= 1,
+    LRN_LAYOUT_FORWARD_OUTPUT		= 2,
+    LRN_LAYOUT_BACKWARD_INPUT		= 3,
+    LRN_FORWARD            		= 4,
+    LRN_BACKWARD           		= 5,
+    BUFFER_LRN_WORKSPACE       		= 6,
+    CV_LRN_BACKWARD_OUTPUT		= 7,
+    BUFFER_LRN_BACKWARD_OUTPUT		= 8
+} mkldnnLRNIndex_t;
+
+
 
 /*compare source define:
 Convolution:1(forward),2(bwd data),3(bwd filter)
