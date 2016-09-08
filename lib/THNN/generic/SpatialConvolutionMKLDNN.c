@@ -173,7 +173,8 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
           int padW,
           int outC,
           int outH,
-          int outW)
+          int outW,
+          int group)
 
 {
 	dnnError_t err;
@@ -233,9 +234,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
 
 #if NEW_INTERFACE
-		CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&m_conv_forward, attributes, dnnAlgorithmConvolutionDirect, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
-		CHECK_ERR(dnnConvolutionCreateBackwardData_F32(&m_conv_bwd_data, attributes, dnnAlgorithmConvolutionDirect, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
-		CHECK_ERR(dnnConvolutionCreateBackwardFilter_F32(&m_conv_bwd_filter, attributes, dnnAlgorithmConvolutionDirect, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
+		CHECK_ERR(dnnGroupsConvolutionCreateForwardBias_F32(&m_conv_forward, attributes, dnnAlgorithmConvolutionDirect, group, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
+		CHECK_ERR(dnnGroupsConvolutionCreateBackwardData_F32(&m_conv_bwd_data, attributes, dnnAlgorithmConvolutionDirect, group, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
+		CHECK_ERR(dnnGroupsConvolutionCreateBackwardFilter_F32(&m_conv_bwd_filter, attributes, dnnAlgorithmConvolutionDirect, group, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
 #endif
 
 		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_forward_conv_input, m_conv_forward, dnnResourceSrc) , err );
@@ -588,7 +589,8 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
           int dW,
           int dH,
           int padW,
-          int padH)
+          int padH,
+	  int group)
 {
 	struct timeval start,mid,convert1,convert2,end;
 	gettimeofday(&start,NULL);
@@ -609,7 +611,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	if(initOk == 0)
 	{
 		primitives->storage->data[CONV_LAYOUT_INPUT] = (long long)input->mkldnnLayout;
-		THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
+		THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW,group);
 	}
 	m_conv_forward 		= (dnnPrimitive_t)(primitives->storage->data[FORWARD_INDEX]);
 	cv_forward_input 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_FORWARD_INPUT];

@@ -42,7 +42,8 @@ TH_API void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
           int dW,
           int dH,
           int padW,
-          int padH);
+          int padH,
+          int group);
 TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
           THNNState *state,
           THTensor *input,
