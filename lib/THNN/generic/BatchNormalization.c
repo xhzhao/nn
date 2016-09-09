@@ -70,6 +70,9 @@ void THNN_(BatchNormalization_backward)(
   THTensor *save_mean, THTensor *save_std,
   bool train, double scale, double eps)
 {
+  struct timeval start,end;
+  gettimeofday(&start,NULL);
+
   long nInput = THTensor_(size)(input, 1);
   long f,n = THTensor_(nElement)(input) / nInput;
 
@@ -139,6 +142,9 @@ void THNN_(BatchNormalization_backward)(
     THTensor_(free)(gradOut);
     THTensor_(free)(in);
   }
+  gettimeofday(&end,NULL);
+  double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+  fprintf(stderr,"        BatchNorm backward time = %.2f ms\n",duration);
 }
 
 #endif

@@ -199,6 +199,9 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
       gradInput:resizeAs(gradOutput)
    end
 
+   if self.timerEnable then
+        elementwiseTime = sys.clock()
+   end
    if self.compare then
 	   input.THNN.BatchNormalization_backward(
 	      input:cdata(),
@@ -300,6 +303,9 @@ local function backward(self, input, gradOutput, scale, gradInput, gradWeight, g
 
    if self.timerEnable then
 	self.timeBackward = self.timeBackward + (sys.clock() - startTime)
+   end
+   if self.timerEnable then
+        print("BatchNormalication  backward elementwiseTime = ",elementwiseTime - startTime)
    end
    return self.gradInput
 end
