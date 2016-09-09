@@ -51,13 +51,27 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(
 	if(primitives->storage->data[RELU_LAYOUT_INPUT] != 0)
 	{
 		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_forward_output, relu_forward, dnnResourceDst), err );
-		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_relu_forward_output), err );
+		//CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_relu_forward_output), err );
 	}
 	else
 	{
 		lt_relu_forward_output = lt_relu_input;
 	}
+	int size1 = dnnLayoutGetMemorySize_F32(lt_relu_forward_output);
+	int size2 = outW*outH*outC*N*4;
+	if(size1 == size2)
+	{
+#if CONVERSION_LOG
+		fprintf(stderr ,"MKLDNN Relu forward ouput layout match OK\n");
+#endif
+	}
+	else
+	{
+		fprintf(stderr ,"MKLDNN Relu forward ouput layout match FAIL, size1 = %d, size2 = %d \n", size1, size2);
+	}
 
+
+	//fprintf(stderr ,"MKLDNN RELU forward init: relu_backward = 0x%x\n", relu_backward);
 	primitives->storage->data[RELU_FORWARD] = (long long)relu_forward;
 	primitives->storage->data[RELU_BACKWARD] = (long long)relu_backward;
 	primitives->storage->data[RELU_LAYOUT_FORWARD_OUTPUT] = (long long)lt_relu_forward_output;
@@ -80,7 +94,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 {
 	dnnError_t err;
 	dnnPrimitive_t relu_backward = (dnnPrimitive_t) (primitives->storage->data[RELU_BACKWARD]);
-	dnnLayout_t lt_relu_diff_out=NULL,lt_relu_diff_src=NULL,lt_user_output=NULL;
+	dnnLayout_t lt_relu_diff_out=NULL, lt_relu_diff_src=NULL,lt_user_output=NULL;
 	dnnPrimitive_t cv_backward_output = NULL;real * buffer_backward_output = NULL;
 #if NEW_INTERFACE
 	/*for new interface*/
@@ -102,11 +116,24 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_backward)(
 		fprintf(stderr ,"MKLDNN RELU get output layout OK\n");
 #endif
 	}
-
+	//fprintf(stderr ,"MKLDNN RELU bwd data: relu_backward = 0x%x\n", relu_backward);
 	real * buffer_backward_input = NULL;
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_out, relu_backward, dnnResourceDiffDst), err );
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_relu_diff_src, relu_backward, dnnResourceDiffSrc), err );
-	CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_backward_input), lt_relu_diff_src), err );
+
+	int size1 = dnnLayoutGetMemorySize_F32(lt_relu_diff_src);
+	int size2 = inW*inH*inC*N*4;
+	if(size1 == size2)
+	{
+#if CONVERSION_LOG
+		fprintf(stderr ,"MKLDNN Relu bwddata input layout match OK\n");
+#endif
+	}
+	else
+	{
+		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_backward_input), lt_relu_diff_src), err );
+		fprintf(stderr ,"MKLDNN Relu bwddata input layout match FAIL, size1 = %d, size2 = %d \n", size1, size2);
+	}
 
 #if CONVERSION_LOG
 	dnnLayout_t lt_relu_forward_output = (dnnLayout_t)primitives->storage->data[RELU_LAYOUT_FORWARD_OUTPUT];
@@ -167,7 +194,7 @@ void THNN_(Threshold_MKLDNN_updateOutput)(
 		THNN_(SpatialConvolutionMM_MKLDNN_Relu_init_forward)(primitives,N,inC,inH,inW,outC,outH,outW,threshold);
 	}
 	real * buffer_forward_output = (real *)primitives->storage->data[BUFFER_RELU_FORWARD_OUTPUT];
-	if(input->mkldnnLayout != 0) // if the input is not NCHW layout
+/*	if(input->mkldnnLayout != 0) // if the input is not NCHW layout
 	{
 		if(output->mkldnnLayout == 0) //if the output is not changed to MKLDNN layout
 		{
@@ -178,7 +205,7 @@ void THNN_(Threshold_MKLDNN_updateOutput)(
 		output->storage->data = buffer_forward_output;
         	output->storageOffset = 0;
 	}
-
+*/
 	relu1 = (dnnPrimitive_t) (primitives->storage->data[RELU_FORWARD]);
 
 	real *resRelu1[dnnResourceNumber];
@@ -230,7 +257,7 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	THTensor_(resizeAs)(gradInput, input);
 	relu1 = (dnnPrimitive_t) (primitives->storage->data[RELU_BACKWARD]);
         real * buffer_backward_input = (real *) (primitives->storage->data[BUFFER_RELU_BACKWARD_INPUT]);
-
+/*
 	if(gradInput->mkldnnLayout == 0)
 	{
 		int memSize = gradInput->storage->size;
@@ -239,7 +266,7 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	}
         gradInput->storage->data = buffer_backward_input;
         gradInput->storageOffset = 0;
-
+*/
 
 	real *resRelu1[dnnResourceNumber];
 	resRelu1[dnnResourceSrc] 	= THTensor_(data)(input);
@@ -257,12 +284,12 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 		CHECK_ERR( dnnConversionExecute_F32(cv_backward_output, THTensor_(data)(gradOutput), resRelu1[dnnResourceDiffDst]), err );
 	}
 	CHECK_ERR( dnnExecute_F32(relu1, (void**)resRelu1), err );
-	if(cv_backward_output)
+/*	if(cv_backward_output)
 	{
 		gradInput->storage->data = resRelu1[dnnResourceDiffSrc];
 		gradInput->storageOffset = 0;
 	}
-	gradInput->mkldnnLayout = (long long)primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT];
+*/	gradInput->mkldnnLayout = (long long)primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT];
 	
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);

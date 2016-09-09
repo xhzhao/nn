@@ -43,8 +43,9 @@ void THNN_(MKLDNN_set_tensor)(
 	  long long newLayout
 	)
 {
-	t->storage->data = (real * )newBuffer;
+	t->storage->data = (real * )newBuffer; //memory leak ??? need to check
 	t->mkldnnLayout = newLayout;
+	THStorage_(setMKLDNN)(t->storage);
 }
 
 void THNN_(SpatialConvolutionMM_compare)(
@@ -150,6 +151,7 @@ void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
 		real * inPtr = THTensor_(data)(input);
 		CHECK_ERR( dnnConversionExecute_F32(cv_BacktoNCHW, inPtr, buffer), err );
 		input->storage->data = buffer;
+		THStorage_(setMKLDNN)(input->storage);
 	}
 #if LOG_ENABLE
 	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW: end.");
@@ -171,7 +173,8 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
           int padW,
           int outC,
           int outH,
-          int outW)
+          int outW,
+          int group)
 
 {
 	dnnError_t err;
@@ -231,9 +234,9 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
 
 #if NEW_INTERFACE
-		CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&m_conv_forward, attributes, dnnAlgorithmConvolutionDirect, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
-		CHECK_ERR(dnnConvolutionCreateBackwardData_F32(&m_conv_bwd_data, attributes, dnnAlgorithmConvolutionDirect, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
-		CHECK_ERR(dnnConvolutionCreateBackwardFilter_F32(&m_conv_bwd_filter, attributes, dnnAlgorithmConvolutionDirect, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
+		CHECK_ERR(dnnGroupsConvolutionCreateForwardBias_F32(&m_conv_forward, attributes, dnnAlgorithmConvolutionDirect, group, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
+		CHECK_ERR(dnnGroupsConvolutionCreateBackwardData_F32(&m_conv_bwd_data, attributes, dnnAlgorithmConvolutionDirect, group, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
+		CHECK_ERR(dnnGroupsConvolutionCreateBackwardFilter_F32(&m_conv_bwd_filter, attributes, dnnAlgorithmConvolutionDirect, group, dimension, inputSize, outputSize, filterSize,stride,pad,dnnBorderZeros),err);
 #endif
 
 		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_forward_conv_input, m_conv_forward, dnnResourceSrc) , err );
@@ -246,10 +249,23 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 		CHECK_ERR( THNN_(init_conversion)(&cv_forward_filter, 	&buffer_forward_filter, lt_forward_conv_filter, lt_user_filter), err );
 		CHECK_ERR( THNN_(init_conversion)(&cv_forward_bias, 	&buffer_forward_bias, 	lt_forward_conv_bias, 	lt_user_bias), err );
 
-		if(!dnnLayoutCompare_F32(lt_forward_conv_output, lt_user_output))
+
+		int size1 = dnnLayoutGetMemorySize_F32(lt_forward_conv_output);
+		int size2 = dnnLayoutGetMemorySize_F32(lt_user_output);
+		if(size1 == size2 && size2 == (outW*outH*outC*N*4))
 		{
-			CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, 	lt_forward_conv_output, lt_user_output), err );
+#if CONVERSION_LOG
+			fprintf(stderr ,"MKLDNN Convolution forward ouput layout match OK\n");
+#endif
+		}
+		else
+		{
+			if(!dnnLayoutCompare_F32(lt_forward_conv_output, lt_user_output))
+			{
+				CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, 	lt_forward_conv_output, lt_user_output), err );
+			}
 			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_forward_conv_output), err );
+			fprintf(stderr, "MKLDNN Convolution forward output layout match FAIL: size1 = %d, size2 = %d, NCHW = %d \n",size1,size2,outW*outH*outC*N);
 		}
 		//primitives->storage->data[CONV_LAYOUT_INPUT] = lt_forward_conv_input;
 	}
@@ -364,12 +380,25 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 
 		CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_filter, 	&buffer_bwddata_filter, lt_bwddata_conv_filter, lt_user_filter) , err );
 		CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_output, 	&buffer_bwddata_output, lt_bwddata_conv_output, lt_user_output) , err );
-		//init backward data conversion:
-		if(!dnnLayoutCompare_F32(lt_bwddata_conv_input, lt_user_input))
-		{
-			CHECK_ERR( dnnConversionCreate_F32(&cv_bwddata_input, lt_bwddata_conv_input, lt_user_input), err );
-			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_bwddata_input), lt_bwddata_conv_input), err );
-		}
+
+                int size1 = dnnLayoutGetMemorySize_F32(lt_bwddata_conv_input);
+                int size2 = dnnLayoutGetMemorySize_F32(lt_user_input);
+                if(size1 == size2 && size2 == (inW*inH*inC*N*4))
+                {
+#if CONVERSION_LOG
+                        fprintf(stderr ,"MKLDNN Convolution bwddata input layout match OK\n");
+#endif
+                }
+                else
+                {
+			if(!dnnLayoutCompare_F32(lt_bwddata_conv_input, lt_user_input))
+			{
+				CHECK_ERR( dnnConversionCreate_F32(&cv_bwddata_input, lt_bwddata_conv_input, lt_user_input), err );
+			}
+                        CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_bwddata_input), lt_bwddata_conv_input), err );
+                        //fprintf(stderr, "MKLDNN Convolution bwddata input layout match FAIL: size1 = %d, size2 = %d, NCHW = %d \n",size1,size2,inW*inH*inC*N*4);
+                }
+
 #if CONVERSION_LOG
 		dnnLayout_t lt_conv_forward_output = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT];
 		int check1 = dnnLayoutCompare_F32(lt_user_output, lt_bwddata_conv_output);
@@ -560,7 +589,8 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
           int dW,
           int dH,
           int padW,
-          int padH)
+          int padH,
+	  int group)
 {
 	struct timeval start,mid,convert1,convert2,end;
 	gettimeofday(&start,NULL);
@@ -581,7 +611,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	if(initOk == 0)
 	{
 		primitives->storage->data[CONV_LAYOUT_INPUT] = (long long)input->mkldnnLayout;
-		THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
+		THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW,group);
 	}
 	m_conv_forward 		= (dnnPrimitive_t)(primitives->storage->data[FORWARD_INDEX]);
 	cv_forward_input 	= (dnnPrimitive_t)primitives->storage->data[CONVERT_FORWARD_INPUT];
@@ -656,15 +686,16 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 			fprintf(stderr, "SpatialConvolutionMM_MKLDNN_forward conversion bias \n");
 #endif
 		} 
-
+/*
 		if(cv_forward_output){
 			resConv[dnnResourceDst] = buffer_forward_output;
 		} 
+*/
 		gettimeofday(&convert1,NULL);
 
 		CHECK_ERR(dnnExecute_F32(m_conv_forward, (void**)resConv),err);	
 		gettimeofday(&convert2,NULL);
-
+/*
 		if(cv_forward_output){
 			//release the original buffer, replace it with the internal buffer
 			if(output->mkldnnLayout == 0)
@@ -676,6 +707,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 			output->storage->data = buffer_forward_output;
 			output->storageOffset = 0;
 		}
+*/
 		output->mkldnnLayout = (long long)primitives->storage->data[CONV_LAYOUT_FORWARD_OUTPUT];
 	}
 	else if(sizeof(real) == sizeof(double))
@@ -812,7 +844,9 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 				gradInput->storage = THStorage_(newWithData)(buffer_bwddata_input,memSize);
 			}
 			gradInput->storage->data = buffer_bwddata_input;
+			THStorage_(setMKLDNN)(gradInput->storage);
 		}
+
 		gradInput->mkldnnLayout = (long long)primitives->storage->data[CONV_LAYOUT_BWDDATA_INPUT];
 
 	}

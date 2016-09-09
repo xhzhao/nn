@@ -43,13 +43,13 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 	{
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 #if CONVERSION_LOG
-		fprintf(stderr ,"MKLDNN POOLING get input layout FAIL......\n");
+		fprintf(stderr ,"MKLDNN MaxPooling get input layout FAIL......\n");
 #endif
 	}
 	else{
 		lt_user_input = (dnnLayout_t)primitives->storage->data[POOLING_LAYOUT_INPUT];
 #if CONVERSION_LOG
-		fprintf(stderr ,"MKLDNN POOLING get input layout OK\n");
+		fprintf(stderr ,"MKLDNN MaxPooling get input layout OK\n");
 #endif
 	}
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides) , err );
@@ -80,12 +80,26 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 	fprintf(stderr, "MKLDNN max pooling workspace_size = %d, input_size =%d, output_size =%d \n",workspace_size,input_size,output_size);
 	fprintf(stderr, "MKLDNN max pooling NCHW output_size =%d \n",N*outC*outH*outW);
 #endif
-	if(!dnnLayoutCompare_F32(lt_user_output, lt_pool_forward_output))
+
+	int size1 = dnnLayoutGetMemorySize_F32(lt_pool_forward_output);
+	int size2 = outW*outH*outC*N*4;
+	if(size1 == size2)
 	{
-		//fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
-		CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, lt_pool_forward_output, lt_user_output), err );
-		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_pool_forward_output), err );
+#if CONVERSION_LOG
+		fprintf(stderr ,"MKLDNN MaxPooling forward ouput layout match OK\n");
+#endif
 	}
+	else
+	{
+		if(!dnnLayoutCompare_F32(lt_user_output, lt_pool_forward_output))
+		{
+			//fprintf(stderr, "cv_forward_output = 0x%x, lt_pool_forward_output = 0x%x, lt_user_output=0x%x \n",cv_forward_output,lt_pool_forward_output,lt_user_output);
+			CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, lt_pool_forward_output, lt_user_output), err );
+			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_pool_forward_output), err );
+		}
+		fprintf(stderr ,"MKLDNN ReMaxPoolinglu forward ouput layout match FAIL, size1 = %d, size2 = %d \n", size1, size2);
+	}
+
 
 	//save the dnnPrimitive to THTensor(long int array)
 	primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT] = (long long)lt_pool_forward_output;
@@ -143,13 +157,13 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 	{
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides) , err );
 #if CONVERSION_LOG
-		fprintf(stderr ,"MKLDNN POOLING get output layout FAIL......\n");
+		fprintf(stderr ,"MKLDNN MaxPooling get output layout FAIL......\n");
 #endif
 	}
 	else{
 		lt_user_output = (dnnLayout_t)primitives->storage->data[POOLING_LAYOUT_OUTPUT];
 #if CONVERSION_LOG
-		fprintf(stderr ,"MKLDNN POOLING get output layout OK\n");
+		fprintf(stderr ,"MKLDNN MaxPooling get output layout OK\n");
 #endif
 	}
 	CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
@@ -170,12 +184,24 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 
 	//backward conversion init
 	CHECK_ERR( THNN_(init_conversion)(&cv_backward_output, &buffer_backward_output, lt_pool_backward_output, lt_user_output), err );
-	if(!dnnLayoutCompare_F32(lt_user_input, lt_pool_backward_input))
-	{
-		CHECK_ERR( dnnConversionCreate_F32(&cv_backward_input, lt_pool_backward_input, lt_user_input), err );
-		CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_backward_input), lt_pool_backward_input), err );
-	}
 
+	int size1 = dnnLayoutGetMemorySize_F32(lt_pool_backward_input);
+	int size2 = inW*inH*inC*N*4;
+	if(size1 == size2)
+	{
+#if CONVERSION_LOG
+		fprintf(stderr ,"MKLDNN MaxPooling bwddata input layout match OK\n");
+#endif
+	}
+	else
+	{
+		if(!dnnLayoutCompare_F32(lt_user_input, lt_pool_backward_input))
+		{
+			CHECK_ERR( dnnConversionCreate_F32(&cv_backward_input, lt_pool_backward_input, lt_user_input), err );
+			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_backward_input), lt_pool_backward_input), err );
+		}
+		fprintf(stderr ,"MKLDNN MaxPooling bwddata input layout match FAIL, size1 = %d, size2 = %d \n", size1, size2);
+	}
 	//save the dnnPrimitive to THTensor(long int array)
 	primitives->storage->data[POOLING_LAYOUT_BACKWARD_INPUT] = (long long)lt_pool_backward_input;
 	primitives->storage->data[CV_POOLING_BACKWARD_INPUT] = (long long)cv_backward_input;
@@ -300,13 +326,14 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 	resPool1[dnnResourceDst] = output_data;
 	resPool1[dnnResourceWorkspace] = buffer_forward_workspace;
 
-
+/*
 	if(cv_forward_output){
 		resPool1[dnnResourceDst] = buffer_forward_output;
 		
 	}
-
+*/
 	CHECK_ERR( dnnExecute_F32(pool1, (void*)resPool1), err );
+/*
 	if(cv_forward_output){
 		//fprintf(stderr,"	Pooling MKLDNN forward check1,output->mkldnnLayout = 0x%x\n",output->mkldnnLayout);
 		if(output->mkldnnLayout == 0)
@@ -318,6 +345,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 		output->storage->data = resPool1[dnnResourceDst];
 		output->storageOffset = 0;
 	}
+*/
 	output->mkldnnLayout = (long long)primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT];	
 #if LOG_ENABLE
 	gettimeofday(&end,NULL);
@@ -436,12 +464,15 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 		resPool1[dnnResourceDiffDst] = buffer_backward_output;
 		CHECK_ERR( dnnConversionExecute_F32(cv_backward_output, gradOutput_data, resPool1[dnnResourceDiffDst]), err );
 	}
+/*
 	if(cv_backward_input){
 		resPool1[dnnResourceDiffSrc] = buffer_backward_input;
 	}
 
+*/
 	CHECK_ERR( dnnExecute_F32(pool_bwd, (void*)resPool1), err );
-	if(cv_backward_input){
+
+/*	if(cv_backward_input){
 		//fprintf(stderr, "	Maxpooling backward input conversion \n");
 		if(gradInput->mkldnnLayout == 0)
 		{
@@ -452,6 +483,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 		gradInput->storage->data = buffer_backward_input;
 		gradInput->storageOffset = 0;
 	}
+*/
 	gradInput->mkldnnLayout = (long long)primitives->storage->data[POOLING_LAYOUT_BACKWARD_INPUT];
 
 #if LOG_ENABLE

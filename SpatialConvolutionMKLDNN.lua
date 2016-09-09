@@ -1,6 +1,6 @@
 local SpatialConvolutionMM, parent = torch.class('nn.SpatialConvolutionMKLDNN', 'nn.Module')
 
-function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, padW, padH)
+function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, padW, padH,group)
    parent.__init(self)
    
    dW = dW or 1
@@ -16,6 +16,7 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
    self.padW = padW or 0
    self.padH = padH or self.padW
 
+   self.group = group or 1
    --self.weight = torch.randn(nOutputPlane, nInputPlane*kH*kW) 
    self.weight = torch.Tensor(nOutputPlane, nInputPlane*kH*kW)
    self.bias = torch.Tensor(nOutputPlane)
@@ -124,7 +125,7 @@ function SpatialConvolutionMM:updateOutput(input)
 	      self.dnnPrimitives:cdata(),self.mkldnnInitOk,
 	      self.kW, self.kH,
 	      self.dW, self.dH,
-	      self.padW, self.padH
+	      self.padW, self.padH,self.group
 	   )
 
 	   input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.output:cdata(), tonumber(N*outC*outH*outW),1)
@@ -139,7 +140,7 @@ function SpatialConvolutionMM:updateOutput(input)
 	      self.dnnPrimitives:cdata(),self.mkldnnInitOk,
 	      self.kW, self.kH,
 	      self.dW, self.dH,
-	      self.padW, self.padH
+	      self.padW, self.padH,self.group
 	   )
    end
    if self.timerEnable then
