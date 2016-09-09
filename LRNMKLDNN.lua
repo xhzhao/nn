@@ -41,11 +41,22 @@ function LRN:updateOutput(input)
       self.mkldnnInitOk
       )
 
+   if self.timerEnable then
+	print("LRN  forward time =         ",self.timeForward," backward time =",self.timeBackward)
+	sys.lrnTime_forward = sys.lrnTime_forward + self.timeForward
+	sys.lrnTime_backward = sys.lrnTime_backward + self.timeBackward
+	self.timeForward =  (sys.clock() - startTime)
+	self.timeBackward = 0
+	self.cnt = self.cnt + 1
+   end
    
    return self.output
 end
 
 function LRN:updateGradInput(input, gradOutput)
+   if self.timerEnable then
+	startTime = sys.clock()
+   end
    if not self.gradInput then return end
    self.gradInput:resizeAs(input)
 
@@ -67,7 +78,9 @@ function LRN:updateGradInput(input, gradOutput)
       self.dnnPrimitives:cdata(),
       self.mkldnnInitOk
       )
-
+   if self.timerEnable then
+	self.timeBackward = (sys.clock() - startTime)
+   end
 
    return self.gradInput
 end
