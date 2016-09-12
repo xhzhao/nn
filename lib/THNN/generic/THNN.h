@@ -60,7 +60,7 @@ TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
           int dW,
           int dH,
           int padW,
-          int padH);
+          int padH,int group);
 TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
           THNNState *state,
           THTensor *input,
@@ -77,7 +77,7 @@ TH_API void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
           int dH,
           int padW,
           int padH,
-          real scale);
+          real scale,int group);
 
 /*Relu*/
 TH_API void THNN_(Threshold_MKLDNN_updateOutput)(

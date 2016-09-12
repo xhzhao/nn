@@ -25,7 +25,7 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
 
    self:setEngine(1)
 
-   self:reset()
+   self:reset(0.01)
 end
 
 function SpatialConvolutionMM:reset(stdv)
@@ -187,7 +187,7 @@ function SpatialConvolutionMM:updateGradInput(input, gradOutput)
 				 self.dnnPrimitives:cdata(),self.mkldnnInitOk,
 				 self.kW, self.kH,
 				 self.dW, self.dH,
-				 self.padW, self.padH
+				 self.padW, self.padH,self.group
 			      )
 
 	      			input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,2)
@@ -203,7 +203,7 @@ function SpatialConvolutionMM:updateGradInput(input, gradOutput)
 				 self.dnnPrimitives:cdata(),self.mkldnnInitOk,
 				 self.kW, self.kH,
 				 self.dW, self.dH,
-				 self.padW, self.padH
+				 self.padW, self.padH,self.group
 			      )
 	   end
    if self.timerEnable then
@@ -244,7 +244,7 @@ function SpatialConvolutionMM:accGradParameters(input, gradOutput, scale)
 		      self.kW, self.kH,
 		      self.dW, self.dH,
 		      self.padW, self.padH,
-		      scale
+		      scale,self.group
 		   )
 		input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradWeight:cdata(), outSize,3)
 
@@ -260,7 +260,7 @@ function SpatialConvolutionMM:accGradParameters(input, gradOutput, scale)
 		      self.kW, self.kH,
 		      self.dW, self.dH,
 		      self.padW, self.padH,
-		      scale
+		      scale,self.group
 		   )
    end
    if self.timerEnable then
