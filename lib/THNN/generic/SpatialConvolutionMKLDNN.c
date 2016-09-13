@@ -229,7 +229,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 			fprintf(stderr ,"MKLDNN Convolution get input layout OK\n");
 #endif
 		}
-		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension+1, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
 
@@ -369,7 +369,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 			fprintf(stderr ,"MKLDNN Convolution get output layout OK\n");
 #endif
 		}
-		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension+1, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 
@@ -518,7 +518,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwdfilter)(
 #endif
 			lt_user_output = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_OUTPUT];
 		}
-		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension, filterSize, filterStrides), err );
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension+1, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 
 		m_conv_bwd_filter = (dnnPrimitive_t) (primitives->storage->data[BWD_FILTER_INDEX]);
