@@ -186,16 +186,16 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 	dnnPrimitive_t m_conv_bwd_data = NULL;
 	dnnPrimitive_t m_conv_bwd_filter = NULL;
 
-	int f_dimension = dimension + (group != 1)
+	int f_dimension = dimension + (group != 1);
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[f_dimension] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[5] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[f_dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[5] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
@@ -329,16 +329,16 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 #endif
 	dnnPrimitive_t m_conv_bwd_data = NULL;
 
-	int f_dimension = dimension + (group != 1)
+	int f_dimension = dimension + (group != 1);
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[f_dimension] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[5] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[f_dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[5] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
 
@@ -461,16 +461,16 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwdfilter)(
 #endif
 	dnnPrimitive_t m_conv_bwd_filter = NULL;
 
-	int f_dimension = dimension + (group != 1)
+	int f_dimension = dimension + (group != 1);
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[f_dimension] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[5] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[f_dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[5] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
