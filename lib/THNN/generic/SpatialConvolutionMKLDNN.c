@@ -187,14 +187,14 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 	dnnPrimitive_t m_conv_bwd_filter = NULL;
 
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[dimension] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[dimension+1] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[dimension+1] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
@@ -329,14 +329,14 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 	dnnPrimitive_t m_conv_bwd_data = NULL;
 
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[dimension] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[dimension+1] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[dimension+1] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
 
@@ -460,14 +460,14 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwdfilter)(
 	dnnPrimitive_t m_conv_bwd_filter = NULL;
 
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[dimension] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[dimension+1] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[dimension+1] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
