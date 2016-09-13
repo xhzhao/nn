@@ -25,7 +25,7 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
 
    self:setEngine(1)
 
-   self:reset(0.01)
+   self:reset()
 end
 
 function SpatialConvolutionMM:reset(stdv)
