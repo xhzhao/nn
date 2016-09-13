@@ -186,15 +186,16 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 	dnnPrimitive_t m_conv_bwd_data = NULL;
 	dnnPrimitive_t m_conv_bwd_filter = NULL;
 
+	int f_dimension = dimension + (group != 1)
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[dimension+1] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[f_dimension] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[dimension+1] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[f_dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
@@ -229,7 +230,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_forward)(
 			fprintf(stderr ,"MKLDNN Convolution get input layout OK\n");
 #endif
 		}
-		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension+1, filterSize, filterStrides), err );
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, f_dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_output, dimension, outputSize, outputStrides), err );
 
@@ -328,15 +329,16 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 #endif
 	dnnPrimitive_t m_conv_bwd_data = NULL;
 
+	int f_dimension = dimension + (group != 1)
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[dimension+1] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[f_dimension] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[dimension+1] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[f_dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
 
@@ -369,7 +371,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 			fprintf(stderr ,"MKLDNN Convolution get output layout OK\n");
 #endif
 		}
-		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension+1, filterSize, filterStrides), err );
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, f_dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 
@@ -459,15 +461,16 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwdfilter)(
 #endif
 	dnnPrimitive_t m_conv_bwd_filter = NULL;
 
+	int f_dimension = dimension + (group != 1)
 	size_t inputSize[dimension] = 	{inW,inH,inC,N};
-	size_t filterSize[dimension+1] = 	{kW,kH,inC/group,outC/group,group};
+	size_t filterSize[f_dimension] = 	{kW,kH,inC/group,outC/group,group};
 	size_t outputSize[dimension] = 	{outW,outH,outC,N};
 	size_t stride[dimension-2] = 	{dW,dH};
 	int pad[dimension-2] = 		{-padW,-padH};
 
 	size_t outputStrides[dimension] = { 1, outW, outH * outW, outC * outH * outW };
 	size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
-	size_t filterStrides[dimension+1] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
+	size_t filterStrides[f_dimension] = { 1, kW, kH * kW, (inC/group) * kH * kW, (inC/group)*(outC/group) * kH * kW };
 
 	size_t biasSize[1] = { outputSize[2] };
 	size_t biasStrides[1] = { 1 };
@@ -518,7 +521,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwdfilter)(
 #endif
 			lt_user_output = (dnnLayout_t)primitives->storage->data[CONV_LAYOUT_OUTPUT];
 		}
-		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, dimension+1, filterSize, filterStrides), err );
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_filter, f_dimension, filterSize, filterStrides), err );
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_bias, 1, biasSize, biasStrides) , err );
 
 		m_conv_bwd_filter = (dnnPrimitive_t) (primitives->storage->data[BWD_FILTER_INDEX]);
