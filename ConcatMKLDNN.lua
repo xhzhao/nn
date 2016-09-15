@@ -15,6 +15,7 @@ function Concat:updateOutput(input)
    if self.initStep == 0 then
    	self.initStep = 1
 	self.dnnPrimitives = torch.LongTensor(20)
+	self.outputArray = torch.LongTensor(10)
    else
 	self.mkldnnInitOk = 1
    end
@@ -31,12 +32,16 @@ function Concat:updateOutput(input)
       if self.timerEnable then
         iterStartTime = sys.clock()
       end
+      --setup the array for MKLDNN
+      input.THNN.Concat_MKLDNN_setupLongTensor(self.outputArray:cdata(), currentOutput:cdata(), i)
       self:ConvertLayoutBackToNCHW(currentOutput, i)
       if i == 1 then
          self.size:resize(currentOutput:dim()):copy(currentOutput:size())
+--[[
 	 if input:cdata().mkldnnLayout == 0 then
 		 input.THNN.MKLDNN_set_tensor(input:cdata(),self.modules[1].modules[1].dnnPrimitives:cdata().storage.data[19],self.modules[1].modules[1].dnnPrimitives:cdata().storage.data[0] )
 	 end
+]]--
       else
          self.size[self.dimension] = self.size[self.dimension] + currentOutput:size(self.dimension)
       end
@@ -69,7 +74,7 @@ function Concat:updateOutput(input)
    -- use MKLDNN to concat
    --print("Concat start to call MKLDNN")
    --print("outputTable = ", outputTable)
-   
+   input.THNN.Concat_MKLDNN_updateOutput(self.outputArray:cdata(), self.output:cdata(), tonumber(#self.modules),self.dnnPrimitives:cdata(),self.mkldnnInitOk)
 --   input.THNN.Concat_MKLDNN_updateOutput(outputTable[1], self.output:cdata(), tonumber(#self.modules), self.dnnPrimitives:cdata(),self.mkldnnInitOk)
    --input.THNN.Concat_MKLDNN_updateOutput(input:cdata(), input:cdata(), 1, input:cdata(),self.mkldnnInitOk)
  

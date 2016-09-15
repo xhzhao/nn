@@ -1,3 +1,4 @@
+
 #ifndef TH_GENERIC_FILE
 #define TH_GENERIC_FILE "generic/ConcatMKLDNN.c"
 #else
@@ -36,16 +37,31 @@ static void THNN_(Concat_MKLDNN_init_backward)(
 {
 }
 
+void THNN_(Concat_MKLDNN_setupLongTensor)(
+          THNNState *state,
+          THLongTensor * array,
+          THTensor *input,
+          int  index)
+{
+	fprintf(stderr, "Concat_MKLDNN_setupLongTensor start. \n");
+	array->storage->data[index] = (long long )array;
+}
 
+
+/**
+input: the long tensor , the tensor size = moduleNum, the data is the THTensor ptr which point to the real data
+*/
 void THNN_(Concat_MKLDNN_updateOutput)(
           THNNState *state,
-          THTensor *input,
+          THLongTensor *input,
           THTensor *output,
           int  moduleNum,
           THLongTensor *primitives,
           int initOk)
 {
 	fprintf(stderr, "Concat_MKLDNN_updateOutput start. \n");
+	long long inputPtr = input->storage->data[0];
+	THTensor * input0 = (THTensor *)inputPtr;
 }
 
 void THNN_(Concat_MKLDNN_updateGradInput)(
