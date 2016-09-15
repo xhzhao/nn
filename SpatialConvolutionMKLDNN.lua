@@ -73,13 +73,16 @@ function SpatialConvolutionMM:updateOutput(input)
    if self.timerEnable then
 	startTime = sys.clock()
    end
+
+   if sys and sys.initOk == 0 then
+      self.initStep = 0
+      self.mkldnnInitOk = 0
+   end
    if self.initStep == 0 then
    	self.initStep = 1
+	self.dnnPrimitives = torch.LongTensor(30)
    else
 	self.mkldnnInitOk = 1
-   end
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(29)
    end
 
    self.finput = self.finput or input.new()

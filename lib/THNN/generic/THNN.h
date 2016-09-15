@@ -183,9 +183,14 @@ TH_API void THNN_(BatchNormalization_MKLDNN_backward)(
 
 
 /*Concat*/
+TH_API void THNN_(Concat_MKLDNN_setupLongTensor)(
+          THNNState *state,
+          THLongTensor * array,
+          THTensor *input,
+          int  index);
 TH_API void THNN_(Concat_MKLDNN_updateOutput)(
           THNNState *state,
-          THTensor *input,
+          THLongTensor *input,
           THTensor *output,
           int  moduleNum,
           THLongTensor *primitives,

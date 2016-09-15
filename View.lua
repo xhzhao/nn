@@ -76,6 +76,10 @@ local function batchsize(input, size, numInputDims, numElements)
 end
 
 function View:updateOutput(input)
+   if sys and sys.initOk == 0 then
+      self.initStep = 0
+      self.mkldnnInitOk = 0
+   end
    if self.initStep == 0 then
    	self.initStep = 1
 	self.dnnPrimitives = torch.LongTensor(20)
