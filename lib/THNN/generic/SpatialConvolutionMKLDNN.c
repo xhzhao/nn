@@ -730,6 +730,13 @@ void THNN_(SpatialConvolutionMM_MKLDNN_forward)(
 	double convert_time2 = (end.tv_sec - convert2.tv_sec) * 1000 + (double)(end.tv_usec - convert2.tv_usec) /1000;
 	fprintf(stderr,"	forward MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2f\nms",convert_time1,exec_time,convert_time2);
 #endif
+
+#if MKL_TIME
+	gettimeofday(&end,NULL);
+	double duration1 = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+	fprintf(stderr,"	Convolution MKLDNN  forward time1 = %.2f ms \n",duration1);
+#endif
+
 }
 
 
@@ -876,10 +883,17 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
         double convert_time1 = (convert1.tv_sec - mid3.tv_sec) * 1000 + (double)(convert1.tv_usec - mid3.tv_usec) /1000;
         double exec_time = (convert2.tv_sec - convert1.tv_sec) * 1000 + (double)(convert2.tv_usec - convert1.tv_usec) /1000;
         double convert_time2 = (end.tv_sec - convert2.tv_sec) * 1000 + (double)(end.tv_usec - convert2.tv_usec) /1000;
-        fprintf(stderr,"        bwddata MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2f\nms",convert_time1,exec_time,convert_time2);
+        fprintf(stderr,"        bwddata MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2fms \n",convert_time1,exec_time,convert_time2);
 
 
 #endif
+
+#if MKL_TIME
+	gettimeofday(&end,NULL);
+	double duration1 = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+	fprintf(stderr,"	Convolution MKLDNN  bwddata time1 = %.2f ms \n",duration1);
+#endif
+
 	THTensor_(transpose)(weight, weight, 0, 1);
 }
 
@@ -1021,6 +1035,13 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdFilter)(
         fprintf(stderr,"        bwdfilter MKLDNN convert_time1 = %.2f ms, exec_time = %.2f, convert_time2=%.2f ms\n",convert_time1,exec_time,convert_time2);
 
 #endif
+
+#if MKL_TIME
+	gettimeofday(&end,NULL);
+	double duration1 = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+	fprintf(stderr,"	Convolution MKLDNN  bwdfilter time1 = %.2f ms \n",duration1);
+#endif
+
 }
 
 #endif

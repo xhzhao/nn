@@ -148,7 +148,7 @@ void THNN_(CrossChannelLRN_MKLDNN_updateOutput)(
 	CHECK_ERR( dnnExecute_F32(lrn_forward, (void*)LRN_res), err );
 	output->mkldnnLayout = (long long)primitives->storage->data[LRN_LAYOUT_FORWARD_OUTPUT];
 	//output->storageOffset = 0;
-#if LOG_ENABLE
+#if LOG_ENABLE || MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration1 = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
 	fprintf(stderr,"	LRN MKLDNN forward time = %.2f ms \n",duration1);
@@ -168,6 +168,8 @@ void THNN_(CrossChannelLRN_MKLDNN_backward)(
 #if LOG_ENABLE
 	fprintf(stderr, "CrossChannelLRN_MKLDNN_backward start.\n");
 #endif
+	struct timeval start,mid,end;
+	gettimeofday(&start,NULL);
 	dnnError_t err;
 	dnnPrimitive_t bn_backward 		= (dnnPrimitive_t)primitives->storage->data[BN_BACKWARD];
 	real * buffer_workspace 	= (real * )primitives->storage->data[BUFFER_LRN_WORKSPACE];
@@ -203,6 +205,12 @@ void THNN_(CrossChannelLRN_MKLDNN_backward)(
 
 	CHECK_ERR( dnnExecute_F32(bn_backward, (void*)LRN_res), err );
 	gradInput->mkldnnLayout = (long long)primitives->storage->data[LRN_LAYOUT_BACKWARD_INPUT];
+
+#if LOG_ENABLE || MKL_TIME
+	gettimeofday(&end,NULL);
+	double duration1 = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+	fprintf(stderr,"	LRN MKLDNN backward time = %.2f ms \n",duration1);
+#endif
 
 #if LOG_ENABLE
 	fprintf(stderr, "CrossChannelLRN_MKLDNN_backward end.\n");

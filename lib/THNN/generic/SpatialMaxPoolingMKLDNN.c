@@ -347,7 +347,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 	}
 */
 	output->mkldnnLayout = (long long)primitives->storage->data[POOLING_LAYOUT_FORWARD_OUTPUT];	
-#if LOG_ENABLE
+#if LOG_ENABLE || MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
 	fprintf(stderr,"	Pooling MKLDNN time = %.2f ms\n",duration );
@@ -486,7 +486,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 */
 	gradInput->mkldnnLayout = (long long)primitives->storage->data[POOLING_LAYOUT_BACKWARD_INPUT];
 
-#if LOG_ENABLE
+#if LOG_ENABLE || MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
 	fprintf(stderr,"	Pooling MKLDNN time = %.2f ms\n",duration );

@@ -465,6 +465,7 @@ dnnError_t dnnInnerProductCreateBackwardBias_F64(
 */
 #define LOG_ENABLE 		0
 #define CONVERSION_LOG		0
+#define MKL_TIME		0
 #define NEW_INTERFACE		1
 
 #define dimension 		4
