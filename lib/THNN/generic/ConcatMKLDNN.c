@@ -55,7 +55,11 @@ static void THNN_(Concat_MKLDNN_init_forward)(
 	}
 	CHECK_ERR(dnnConcatCreate_F32(&m_concat_forward, NULL, moduleNum, layouts), err);
 
+	dnnLayout_t lt_concat_forward_output = NULL;
+	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_concat_forward_output, m_concat_forward, dnnResourceDst), err );
+
 	primitives->storage->data[CONCAT_FORWARD] = (long long)m_concat_forward;
+	primitives->storage->data[CONCAT_LAYOUT_FORWARD_OUTPUT] = (long long)lt_concat_forward_output;
 
 
 #if LOG_ENABLE
@@ -105,6 +109,8 @@ void THNN_(Concat_MKLDNN_updateOutput)(
 #if LOG_ENABLE
 	fprintf(stderr, "Concat_MKLDNN_updateOutput start. inputarray = 0x%x, output = 0x%d, moduleNum = %d,  primitives = 0x%x, initOk = %d \n", inputarray, output, moduleNum, primitives, initOk);
 #endif
+	struct timeval start,end;
+	gettimeofday(&start,NULL);
 	dnnError_t err;
 
 	if(initOk == 0)
@@ -129,7 +135,12 @@ void THNN_(Concat_MKLDNN_updateOutput)(
 
 	CHECK_ERR( dnnExecute_F32(m_concat_forward, (void*)concat_res), err );
 	
-	
+	output->mkldnnLayout = (long long)primitives->storage->data[CONCAT_LAYOUT_FORWARD_OUTPUT];	
+#if LOG_ENABLE || MKL_TIME
+	gettimeofday(&end,NULL);
+	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+	fprintf(stderr,"	MaxPooling MKLDNN time forward= %.2f ms\n",duration );
+#endif
 #if LOG_ENABLE
 	fprintf(stderr, "Concat_MKLDNN_updateOutput end. \n");
 #endif
