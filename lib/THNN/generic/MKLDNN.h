@@ -570,6 +570,14 @@ typedef enum {
     BUFFER_LRN_BACKWARD_OUTPUT		= 8
 } mkldnnLRNIndex_t;
 
+typedef enum {
+    CONCAT_LAYOUT_INPUT			= 0,
+    CONCAT_LAYOUT_OUTPUT		= 1,
+    CONCAT_LAYOUT_FORWARD_OUTPUT	= 2,
+    CONCAT_LAYOUT_BACKWARD_INPUT	= 3,
+    CONCAT_FORWARD			= 4,
+    CONCAT_BACKWARD			= 5
+} mkldnnConcatIndex_t;
 
 
 /*compare source define:

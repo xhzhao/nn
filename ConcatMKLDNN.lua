@@ -34,14 +34,9 @@ function Concat:updateOutput(input)
       end
       --setup the array for MKLDNN
       input.THNN.Concat_MKLDNN_setupLongTensor(self.outputArray:cdata(), currentOutput:cdata(), i)
-      self:ConvertLayoutBackToNCHW(currentOutput, i)
+      --self:ConvertLayoutBackToNCHW(currentOutput, i)
       if i == 1 then
          self.size:resize(currentOutput:dim()):copy(currentOutput:size())
---[[
-	 if input:cdata().mkldnnLayout == 0 then
-		 input.THNN.MKLDNN_set_tensor(input:cdata(),self.modules[1].modules[1].dnnPrimitives:cdata().storage.data[19],self.modules[1].modules[1].dnnPrimitives:cdata().storage.data[0] )
-	 end
-]]--
       else
          self.size[self.dimension] = self.size[self.dimension] + currentOutput:size(self.dimension)
       end
@@ -55,12 +50,17 @@ function Concat:updateOutput(input)
       end
    self.output:resize(self.size)
 
+--[[
    local offset = 1
    for i,module in ipairs(self.modules) do
       local currentOutput = outs[i]
       self.output:narrow(self.dimension, offset, currentOutput:size(self.dimension)):copy(currentOutput)
       offset = offset + currentOutput:size(self.dimension)
    end
+]]--
+   -- use MKLDNN to concat
+   input.THNN.Concat_MKLDNN_updateOutput(self.outputArray:cdata(), self.output:cdata(), tonumber(#self.modules),self.dnnPrimitives:cdata(),self.mkldnnInitOk)
+
     if self.timerEnable then
         iterForward = sys.clock() - iterStartTime
         forwardTime = forwardTime + iterForward
@@ -71,14 +71,6 @@ function Concat:updateOutput(input)
         self.cnt = self.cnt + 1
    end
 
-   -- use MKLDNN to concat
-   --print("Concat start to call MKLDNN")
-   --print("outputTable = ", outputTable)
-   input.THNN.Concat_MKLDNN_updateOutput(self.outputArray:cdata(), self.output:cdata(), tonumber(#self.modules),self.dnnPrimitives:cdata(),self.mkldnnInitOk)
---   input.THNN.Concat_MKLDNN_updateOutput(outputTable[1], self.output:cdata(), tonumber(#self.modules), self.dnnPrimitives:cdata(),self.mkldnnInitOk)
-   --input.THNN.Concat_MKLDNN_updateOutput(input:cdata(), input:cdata(), 1, input:cdata(),self.mkldnnInitOk)
- 
-   --print("ConcatMKLDNN:updateOutput end")
    return self.output
 end
 
