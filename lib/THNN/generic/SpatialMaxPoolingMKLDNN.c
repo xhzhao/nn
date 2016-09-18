@@ -4,7 +4,7 @@
 
 #include "MKLDNN.h"
 
-static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
+static void THNN_(SpatialMaxPooling_MKLDNN_init_forward)(
           THLongTensor *primitives,
           int N,
           int inC,
@@ -21,7 +21,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
           int outW)
 {
 #if LOG_ENABLE
-	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,dH=%d,dW=%d,padH=%d,padW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW );
+	fprintf(stderr,"	SpatialMaxPooling_MKLDNN_init_forward start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,dH=%d,dW=%d,padH=%d,padW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW );
 #endif
 	dnnError_t err;
 
@@ -77,8 +77,8 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 	int input_size = dnnLayoutGetMemorySize_F32(lt_pool_forward_input);
 	int output_size = dnnLayoutGetMemorySize_F32(lt_pool_forward_output);
 	int workspace_size = dnnLayoutGetMemorySize_F32(lt_pool_forward_workspace);
-	fprintf(stderr, "MKLDNN max pooling workspace_size = %d, input_size =%d, output_size =%d \n",workspace_size,input_size,output_size);
-	fprintf(stderr, "MKLDNN max pooling NCHW output_size =%d \n",N*outC*outH*outW);
+	fprintf(stderr, "MKLDNN MaxPooling workspace_size = %d, input_size =%d, output_size =%d \n",workspace_size,input_size,output_size);
+	fprintf(stderr, "MKLDNN MaxPooling NCHW output_size =%d \n",N*outC*outH*outW);
 #endif
 
 	int size1 = dnnLayoutGetMemorySize_F32(lt_pool_forward_output);
@@ -97,7 +97,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 			CHECK_ERR( dnnConversionCreate_F32(&cv_forward_output, lt_pool_forward_output, lt_user_output), err );
 			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer_forward_output), lt_pool_forward_output), err );
 		}
-		fprintf(stderr ,"MKLDNN ReMaxPoolinglu forward ouput layout match FAIL, size1 = %d, size2 = %d \n", size1, size2);
+		fprintf(stderr ,"MKLDNN MaxPooling forward ouput layout match FAIL, size1 = %d, size2 = %d \n", size1, size2);
 	}
 
 
@@ -115,12 +115,12 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(
 
 
 #if LOG_ENABLE
-	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward end.\n" );
+	fprintf(stderr,"	SpatialMaxPooling_MKLDNN_init_forward end.\n" );
 #endif
 }
 
 
-static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
+static void THNN_(SpatialMaxPooling_MKLDNN_init_backward)(
           THLongTensor *primitives,
           int N,
           int inC,
@@ -137,7 +137,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
           int outW)
 {
 #if LOG_ENABLE
-	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,dH=%d,dW=%d,padH=%d,padW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW );
+	fprintf(stderr,"	SpatialMaxPooling_MKLDNN_init_backward start, N=%d,inC=%d,inH=%d,inW=%d,kH=%d,kW=%d,dH=%d,dW=%d,padH=%d,padW=%d,outC=%d,outH=%d,outW=%d\n",N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW );
 #endif
 	dnnError_t err;
 	int inputOffset[dimension - 2 ] = { 0, 0 };
@@ -212,7 +212,7 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(
 
 
 #if LOG_ENABLE
-	fprintf(stderr,"	SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward end.\n" );
+	fprintf(stderr,"	SpatialMaxPooling_MKLDNN_init_backward end.\n" );
 #endif
 }
 void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
@@ -306,7 +306,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 	if(initOk == 0)
 	{
 		primitives->storage->data[POOLING_LAYOUT_INPUT] = (long long)input->mkldnnLayout;
-		THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_forward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
+		THNN_(SpatialMaxPooling_MKLDNN_init_forward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
 	}
 
 	dnnPrimitive_t cv_forward_input = NULL,cv_forward_output = NULL;
@@ -350,7 +350,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateOutput)(
 #if LOG_ENABLE || MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
-	fprintf(stderr,"	Pooling MKLDNN time = %.2f ms\n",duration );
+	fprintf(stderr,"	MaxPooling MKLDNN time forward= %.2f ms\n",duration );
 #endif
   /* cleanup */
     THTensor_(free)(input);
@@ -441,7 +441,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 	if(initOk == 0)
 	{
 		primitives->storage->data[POOLING_LAYOUT_OUTPUT] = (long long)gradOutput->mkldnnLayout;
-		THNN_(SpatialConvolutionMM_MKLDNN_MaxPooling_init_backward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
+		THNN_(SpatialMaxPooling_MKLDNN_init_backward)(primitives,N,inC,inH,inW,kH,kW,dH,dW,padH,padW,outC,outH,outW);
 	}
 
 	cv_backward_input 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_BACKWARD_INPUT]);
@@ -489,7 +489,7 @@ void THNN_(SpatialMaxPooling_MKLDNN_updateGradInput)(
 #if LOG_ENABLE || MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
-	fprintf(stderr,"	Pooling MKLDNN time = %.2f ms\n",duration );
+	fprintf(stderr,"	MaxPooling MKLDNN time backward= %.2f ms\n",duration );
 #endif
   }
 

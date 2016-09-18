@@ -14,13 +14,7 @@ function SpatialAveragePooling:__init(kW, kH, dW, dH, padW, padH)
    self.divide = true
 
 
-   self.mkldnnInitOk = 0
-   self.initStep = 0
-   self.compare = sys.compare or false
-   self.timerEnable = sys.timerEnable or false
-   self.timeForward = 0
-   self.timeBackward = 0
-   self.cnt = 0
+   self:setEngine(1)
 
 end
 
@@ -54,15 +48,21 @@ local function backwardCompatible(self)
 end
 
 function SpatialAveragePooling:updateOutput(input)
-   backwardCompatible(self)
-   if self.mkldnnInitOk == 0 then
-      self.dnnPrimitives = torch.LongTensor(16)
+
+   if self.timerEnable then
+	startTime = sys.clock()
+   end
+   if sys and sys.initOk == 0 then
+      self.initStep = 0
+      self.mkldnnInitOk = 0
    end
    if self.initStep == 0 then
    	self.initStep = 1
+      self.dnnPrimitives = torch.LongTensor(16)
    else
 	self.mkldnnInitOk = 1
    end
+   backwardCompatible(self)
    if self.compare  then
 	   input.THNN.SpatialAveragePooling_updateOutput(
 	      input:cdata(),
@@ -107,61 +107,78 @@ function SpatialAveragePooling:updateOutput(input)
    if not self.divide then
      self.output:mul(self.kW*self.kH)
    end
+
+   if self.timerEnable then
+        print("mkldnn SpatialAveragePooling forward time = ,",self.timeForward," backward time =",self.timeBackward)
+        sys.avgpoolingTime_forward = sys.avgpoolingTime_forward + self.timeForward 
+        sys.avgpoolingTime_backward = sys.avgpoolingTime_backward + self.timeBackward
+        self.timeForward = sys.clock() - startTime
+        self.cnt = self.cnt + 1
+   end
    return self.output
 end
 
 function SpatialAveragePooling:updateGradInput(input, gradOutput)
+
+
    if self.gradInput then
 
-   if self.compare  then
-      input.THNN.SpatialAveragePooling_updateGradInput(
-         input:cdata(),
-         gradOutput:cdata(),
-         self.gradInput:cdata(),
-         self.kW, self.kH,
-         self.dW, self.dH,
-         self.padW, self.padH,
-         self.ceil_mode,
-         self.count_include_pad
-      )
+      if self.timerEnable then
+	   startTime = sys.clock()
+      end
+	   if self.compare  then
+	      input.THNN.SpatialAveragePooling_updateGradInput(
+		 input:cdata(),
+		 gradOutput:cdata(),
+		 self.gradInput:cdata(),
+		 self.kW, self.kH,
+		 self.dW, self.dH,
+		 self.padW, self.padH,
+		 self.ceil_mode,
+		 self.count_include_pad
+	      )
 
-	outSize = tonumber(self.gradInput:cdata().size[0] *self.gradInput:cdata().size[1] *self.gradInput:cdata().size[2] *self.gradInput:cdata().size[3])
-	tmpOut = torch.Tensor(outSize)
-	input.THNN.SpatialAveragePooling_MKLDNN_updateGradInput(
-         input:cdata(),
-         gradOutput:cdata(),
-         tmpOut:cdata(),
-         self.kW, self.kH,
-         self.dW, self.dH,
-         self.padW, self.padH,
-         self.ceil_mode,
-         self.count_include_pad,
-	 self.dnnPrimitives:cdata(),self.mkldnnInitOk
-	   )
-	 input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,9)
+		outSize = tonumber(self.gradInput:cdata().size[0] *self.gradInput:cdata().size[1] *self.gradInput:cdata().size[2] *self.gradInput:cdata().size[3])
+		tmpOut = torch.Tensor(outSize)
+		input.THNN.SpatialAveragePooling_MKLDNN_updateGradInput(
+		 input:cdata(),
+		 gradOutput:cdata(),
+		 tmpOut:cdata(),
+		 self.kW, self.kH,
+		 self.dW, self.dH,
+		 self.padW, self.padH,
+		 self.ceil_mode,
+		 self.count_include_pad,
+		 self.dnnPrimitives:cdata(),self.mkldnnInitOk
+		   )
+		 input.THNN.SpatialConvolutionMM_compare(tmpOut:cdata(), self.gradInput:cdata(), outSize,9)
 
 
-   else
+	   else
 
 
-      input.THNN.SpatialAveragePooling_MKLDNN_updateGradInput(
-         input:cdata(),
-         gradOutput:cdata(),
-         self.gradInput:cdata(),
-         self.kW, self.kH,
-         self.dW, self.dH,
-         self.padW, self.padH,
-         self.ceil_mode,
-         self.count_include_pad,
-         self.dnnPrimitives:cdata(),self.mkldnnInitOk
-      )
+	      input.THNN.SpatialAveragePooling_MKLDNN_updateGradInput(
+		 input:cdata(),
+		 gradOutput:cdata(),
+		 self.gradInput:cdata(),
+		 self.kW, self.kH,
+		 self.dW, self.dH,
+		 self.padW, self.padH,
+		 self.ceil_mode,
+		 self.count_include_pad,
+		 self.dnnPrimitives:cdata(),self.mkldnnInitOk
+	      )
 
-   end
+	   end
 
       -- for backward compatibility
       if not self.divide then
          self.gradInput:mul(self.kW*self.kH)
       end
+      if self.timerEnable then
+	   self.timeBackward = sys.clock() - startTime
+      end
+
       return self.gradInput
    end
 end
