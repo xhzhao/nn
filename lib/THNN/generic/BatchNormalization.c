@@ -142,9 +142,11 @@ void THNN_(BatchNormalization_backward)(
     THTensor_(free)(gradOut);
     THTensor_(free)(in);
   }
+#if 0
   gettimeofday(&end,NULL);
   double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
   fprintf(stderr,"        BatchNorm backward time = %.2f ms\n",duration);
+#endif
 }
 
 #endif
