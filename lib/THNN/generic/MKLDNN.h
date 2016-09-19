@@ -596,4 +596,6 @@ BatchNormalization:10(forward),11(backward)
 } while(0)	
 
 
+dnnError_t  THNN_(init_conversion)(dnnPrimitive_t *cv, real **ptr_out,dnnLayout_t lt_pr, dnnLayout_t lt_us);
+
 #endif

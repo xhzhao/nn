@@ -314,9 +314,9 @@ void THNN_(SpatialAveragePooling_MKLDNN_updateOutput)(
 	dnnPrimitive_t pool1 	= (dnnPrimitive_t) (primitives->storage->data[POOLING_FORWARD]);
 	cv_forward_input 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_FORWARD_INPUT]);
 	cv_forward_output 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_FORWARD_OUTPUT]);
-	buffer_forward_input	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_INPUT]);
-	buffer_forward_output	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_OUTPUT]);
-	buffer_forward_workspace= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_FORWARD_WORKSPACE]);
+	buffer_forward_input	= (real *) (primitives->storage->data[BUFFER_POOLING_FORWARD_INPUT]);
+	buffer_forward_output	= (real *) (primitives->storage->data[BUFFER_POOLING_FORWARD_OUTPUT]);
+	buffer_forward_workspace= (real *) (primitives->storage->data[BUFFER_POOLING_FORWARD_WORKSPACE]);
 
 
 	real * resPool1[dnnResourceNumber] = {0};
@@ -425,9 +425,9 @@ void THNN_(SpatialAveragePooling_MKLDNN_updateGradInput)(
 
 	cv_backward_input 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_BACKWARD_INPUT]);
 	cv_backward_output 	= (dnnPrimitive_t) (primitives->storage->data[CV_POOLING_BACKWARD_OUTPUT]);
-	buffer_backward_input	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_BACKWARD_INPUT]);
-	buffer_backward_output	= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_BACKWARD_OUTPUT]);
-	buffer_backward_workspace= (dnnPrimitive_t) (primitives->storage->data[BUFFER_POOLING_BACKWARD_WORKSPACE]);
+	buffer_backward_input	= (real *) (primitives->storage->data[BUFFER_POOLING_BACKWARD_INPUT]);
+	buffer_backward_output	= (real *) (primitives->storage->data[BUFFER_POOLING_BACKWARD_OUTPUT]);
+	buffer_backward_workspace= (real *) (primitives->storage->data[BUFFER_POOLING_BACKWARD_WORKSPACE]);
 
 
 	real * resPool1[dnnResourceNumber] = {0};
