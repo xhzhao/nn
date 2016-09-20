@@ -195,6 +195,13 @@ TH_API void THNN_(Concat_MKLDNN_updateOutput)(
           int  moduleNum,
           THLongTensor *primitives,
           int initOk);
+TH_API void THNN_(Concat_MKLDNN_backward_split)(
+          THNNState *state,
+          THLongTensor *gradarray,
+          THTensor *gradOutput,
+          int  moduleNum,
+          THLongTensor *primitives,
+          int initOk);
 
 
 /*LRN*/

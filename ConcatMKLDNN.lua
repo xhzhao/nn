@@ -16,6 +16,7 @@ function Concat:updateOutput(input)
    	self.initStep = 1
 	self.dnnPrimitives = torch.LongTensor(20)
 	self.outputArray = torch.LongTensor(10)
+	self.gradOutputArray = torch.LongTensor(10)
    else
 	self.mkldnnInitOk = 1
    end
@@ -50,14 +51,6 @@ function Concat:updateOutput(input)
       end
    self.output:resize(self.size)
 
---[[
-   local offset = 1
-   for i,module in ipairs(self.modules) do
-      local currentOutput = outs[i]
-      self.output:narrow(self.dimension, offset, currentOutput:size(self.dimension)):copy(currentOutput)
-      offset = offset + currentOutput:size(self.dimension)
-   end
-]]--
    -- use MKLDNN to concat
    input.THNN.Concat_MKLDNN_updateOutput(self.outputArray:cdata(), self.output:cdata(), tonumber(#self.modules),self.dnnPrimitives:cdata(),self.mkldnnInitOk)
 
@@ -76,54 +69,31 @@ end
 
 function Concat:updateGradInput(input, gradOutput)
 
-   local iterStartTime
-   local iterBackward
-   local backwardTime = 0
-   local offset = 1
-   iterStartTime = sys.clock()
-
    self.gradInput:resizeAs(input)
+   local gradOutputBuffer = {}
+   for i,module in ipairs(self.modules) do
+      local gradOutputPart = torch.Tensor()
+      gradOutputPart:resizeAs(module.output)
+      gradOutputBuffer[i] = gradOutputPart
+      input.THNN.Concat_MKLDNN_setupLongTensor(self.gradOutputArray:cdata(), gradOutputPart:cdata(), i)
+   end
 
-   if self.timerEnable then
-        iterBackward = sys.clock() - iterStartTime
-        backwardTime = backwardTime+ iterBackward
-    end
+   --split gradOutput to  gradOutputArray
+   input.THNN.Concat_MKLDNN_backward_split(self.gradOutputArray:cdata(), gradOutput:cdata(), tonumber(#self.modules),self.dnnPrimitives:cdata(),self.mkldnnInitOk)
 
    for i,module in ipairs(self.modules) do
-      if self.timerEnable then
-        iterStartTime = sys.clock()
-      end
       local currentOutput = module.output
-      local gradOutputPart = gradOutput:narrow(self.dimension, offset, currentOutput:size(self.dimension))
-      if self.timerEnable then
-            iterBackward = sys.clock() - iterStartTime
-            backwardTime = backwardTime+ iterBackward
-      end
-
+      gradOutputPart = gradOutputBuffer[i]
       local currentGradInput = self:rethrowErrors(module, i, 'updateGradInput', input, gradOutputPart)
-
-      if self.timerEnable then
-        iterStartTime = sys.clock()
-      end
       if currentGradInput then -- if the module does not produce a gradInput (for example first layer), then ignore it and move on.
          if i==1 then
             self.gradInput:copy(currentGradInput)
+            self.gradInput:cdata().mkldnnLayout = currentGradInput:cdata().mkldnnLayout
          else
             self.gradInput:add(currentGradInput)
          end
       end
-      offset = offset + currentOutput:size(self.dimension)
-      if self.timerEnable then
-            iterBackward = sys.clock() - iterStartTime
-            backwardTime = backwardTime+ iterBackward
-      end
    end
-
-   if self.timerEnable then
-        self.timeBackward1 =  backwardTime
-   end
-
-
    return self.gradInput
 end
 
@@ -152,16 +122,7 @@ function Concat:accGradParameters(input, gradOutput, scale)
           input,
           gradOutputPart,
           scale)
-      --[[
-      if self.timerEnable then
-        iterStartTime = sys.clock()
-      end]]
       offset = offset + currentOutput:size(self.dimension)
-      --[[
-      if self.timerEnable then
-            iterBackward = sys.clock() - iterStartTime
-            backwardTime = backwardTime+ iterBackward
-      end]]
    end
    if self.timerEnable then
         self.timeBackward2 =  backwardTime
@@ -170,25 +131,34 @@ end
 
 function Concat:backward(input, gradOutput, scale)
    self.gradInput:resizeAs(input)
-   scale = scale or 1
-   local offset = 1
+   local gradOutputBuffer = {}
+   for i,module in ipairs(self.modules) do
+      local gradOutputPart = torch.Tensor()
+      gradOutputPart:resizeAs(module.output)
+      gradOutputBuffer[i] = gradOutputPart
+      input.THNN.Concat_MKLDNN_setupLongTensor(self.gradOutputArray:cdata(), gradOutputPart:cdata(), i)
+   end
+
+   --split gradOutput to  gradOutputArray
+   input.THNN.Concat_MKLDNN_backward_split(self.gradOutputArray:cdata(), gradOutput:cdata(), tonumber(#self.modules),self.dnnPrimitives:cdata(),self.mkldnnInitOk)
+
    for i,module in ipairs(self.modules) do
       local currentOutput = module.output
-      local currentGradInput = self:rethrowErrors(module, i, 'backward', input, gradOutput:narrow(self.dimension, offset, currentOutput:size(self.dimension)), scale)
+      gradOutputPart = gradOutputBuffer[i]
+      local currentGradInput = self:rethrowErrors(module, i, 'backward', input, gradOutputPart, scale)
       if currentGradInput then -- if the module does not produce a gradInput (for example first layer), then ignore it and move on.
          if i==1 then
             self.gradInput:copy(currentGradInput)
+            self.gradInput:cdata().mkldnnLayout = currentGradInput:cdata().mkldnnLayout
          else
             self.gradInput:add(currentGradInput)
          end
       end
-      offset = offset + currentOutput:size(self.dimension)
    end
    return self.gradInput
 end
 
 function Concat:accUpdateGradParameters(input, gradOutput, lr)
-  print(" Concat:accUpdateGradParameters ")
    local offset = 1
    for i,module in ipairs(self.modules) do
       local currentOutput = module.output

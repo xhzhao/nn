@@ -12,7 +12,7 @@ static void THNN_(Concat_MKLDNN_init_forward)(
 	  )
 {
 #if LOG_ENABLE
-	fprintf(stderr, "Concat_MKLDNN_init_forward start. \n");
+	fprintf(stderr, "Concat_MKLDNN_init_forward start\n");
 #endif
 	dnnError_t err;
 	dnnPrimitive_t m_concat_forward = NULL;
@@ -28,7 +28,7 @@ static void THNN_(Concat_MKLDNN_init_forward)(
 		if(input->mkldnnLayout == 0)
 		{
 #if CONVERSION_LOG
-			fprintf(stderr, "Concat MKLDNN get input layout fail, i = %d \n", i);
+			fprintf(stderr, "Concat MKLDNN forward get input layout fail, i = %d \n", i);
 #endif
 			//create NCHW layout here
 			int N = input->size[0];
@@ -48,7 +48,7 @@ static void THNN_(Concat_MKLDNN_init_forward)(
 			int inC = input->size[1];
 			int inH = input->size[2];
 			int inW = input->size[3];
-			fprintf(stderr, "Concat MKLDNN get input layout OK, N = %d, inC = %d, inH = %d, inW = %d \n",N,inC,inH,inW);
+			fprintf(stderr, "Concat MKLDNN forward get input layout OK, N = %d, inC = %d, inH = %d, inW = %d \n",N,inC,inH,inW);
 #endif
 			layouts[i] = (dnnLayout_t)input->mkldnnLayout;
 		}
@@ -58,8 +58,10 @@ static void THNN_(Concat_MKLDNN_init_forward)(
 	dnnLayout_t lt_concat_forward_output = NULL;
 	CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_concat_forward_output, m_concat_forward, dnnResourceDst), err );
 
+
 	primitives->storage->data[CONCAT_FORWARD] = (long long)m_concat_forward;
 	primitives->storage->data[CONCAT_LAYOUT_FORWARD_OUTPUT] = (long long)lt_concat_forward_output;
+
 
 
 #if LOG_ENABLE
@@ -68,17 +70,68 @@ static void THNN_(Concat_MKLDNN_init_forward)(
 }
 
 static void THNN_(Concat_MKLDNN_init_backward)(
-          THLongTensor *primitives,
-          int N,
-          int inC,
-          int inH,
-          int inW,
-          int outC,
-          int outH,
-          int outW,
-	  real threshold
-	  )
+          THLongTensor *gradarray,
+          THTensor *gradOutput,
+          int  moduleNum,
+          THLongTensor *primitives)
 {
+
+#if LOG_ENABLE
+	fprintf(stderr, "Concat_MKLDNN_init_backward start. gradarray = 0x%x, gradOutput = 0x%d, moduleNum = %d,  primitives = 0x%x\n", gradarray, gradOutput, moduleNum, primitives);
+#endif
+	struct timeval start,end;
+	gettimeofday(&start,NULL);
+	dnnError_t err;
+
+	dnnPrimitive_t concat_split = NULL;
+	dnnLayout_t layout = NULL;
+
+	if(gradOutput->mkldnnLayout == 0)
+	{
+#if CONVERSION_LOG
+		fprintf(stderr, "Concat MKLDNN backward get input layout fail\n");
+#endif
+		//create NCHW layout here
+		int N = gradOutput->size[0];
+		int inC = gradOutput->size[1];
+		int inH = gradOutput->size[2];
+		int inW = gradOutput->size[3];
+		dnnLayout_t lt_user_input = NULL;
+		size_t inputSize[dimension] = 	{inW,inH,inC,N};
+		size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
+		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
+		layout = lt_user_input;
+	}
+	else
+	{
+#if CONVERSION_LOG
+		int N = gradOutput->size[0];
+		int inC = gradOutput->size[1];
+		int inH = gradOutput->size[2];
+		int inW = gradOutput->size[3];
+		fprintf(stderr, "Concat MKLDNN backward get input layout OK, N = %d, inC = %d, inH = %d, inW = %d \n",N,inC,inH,inW);
+#endif
+		layout = (dnnLayout_t)gradOutput->mkldnnLayout;
+	}
+
+	THTensor * grad = NULL;
+	long long gradPtr = 0;
+	size_t split_channels[10]; 
+	for(int i=0; i < moduleNum; i++)
+	{
+		gradPtr = gradarray->storage->data[i];
+		grad = (THTensor *)gradPtr;
+		split_channels[i] = grad->size[1];
+	}
+	CHECK_ERR(dnnSplitCreate_F32(&concat_split, NULL, moduleNum, layout, split_channels), err);
+
+
+
+	primitives->storage->data[CONCAT_BACKWARD] = (long long)concat_split;
+#if LOG_ENABLE
+	fprintf(stderr, "Concat_MKLDNN_init_backward end. \n");
+#endif
+
 }
 
 void THNN_(Concat_MKLDNN_setupLongTensor)(
@@ -118,7 +171,7 @@ void THNN_(Concat_MKLDNN_updateOutput)(
 		THNN_(Concat_MKLDNN_init_forward)(inputarray, output, moduleNum, primitives);
 	}
 
-	dnnPrimitive_t m_concat_forward = NULL;
+	dnnPrimitive_t m_concat_forward = (dnnPrimitive_t) (primitives->storage->data[CONCAT_FORWARD]);
 	THTensor * input = NULL;
 	long long inputPtr = 0;
 	dnnLayout_t *layouts = NULL;
@@ -131,8 +184,6 @@ void THNN_(Concat_MKLDNN_updateOutput)(
 		
 	}
 	concat_res[dnnResourceDst] = THTensor_(data)(output);
-	m_concat_forward = (dnnPrimitive_t) (primitives->storage->data[CONCAT_FORWARD]);
-
 	CHECK_ERR( dnnExecute_F32(m_concat_forward, (void*)concat_res), err );
 	
 	output->mkldnnLayout = (long long)primitives->storage->data[CONCAT_LAYOUT_FORWARD_OUTPUT];	
@@ -147,17 +198,49 @@ void THNN_(Concat_MKLDNN_updateOutput)(
 
 }
 
-void THNN_(Concat_MKLDNN_updateGradInput)(
+void THNN_(Concat_MKLDNN_backward_split)(
           THNNState *state,
-          THTensor *input,
+          THLongTensor *gradarray,
           THTensor *gradOutput,
-          THTensor *gradInput,
-          real threshold,
-          bool inplace,
+          int  moduleNum,
           THLongTensor *primitives,
           int initOk)
 {
+#if LOG_ENABLE
+	fprintf(stderr, "Concat_MKLDNN_backward_split start. gradarray = 0x%x, gradOutput = 0x%d, moduleNum = %d,  primitives = 0x%x, initOk = %d \n", gradarray, gradOutput, moduleNum, primitives, initOk);
+#endif
+	struct timeval start,end;
+	gettimeofday(&start,NULL);
+	dnnError_t err;
+	dnnLayout_t layout = NULL;
+
+	if(initOk == 0)
+	{
+		THNN_(Concat_MKLDNN_init_backward)(gradarray, gradOutput, moduleNum, primitives);
+	}
+	dnnPrimitive_t concat_split = (dnnPrimitive_t)primitives->storage->data[CONCAT_BACKWARD];
+	
+	THTensor * grad = NULL;
+	long long gradPtr = 0;
+	void *split_res[dnnResourceNumber];
+	split_res[dnnResourceSrc] = THTensor_(data)(gradOutput);
+	for(int i=0; i < moduleNum; i++)
+	{
+		gradPtr = gradarray->storage->data[i];
+		grad = (THTensor *)gradPtr;
+		split_res[dnnResourceMultipleDst + i] = THTensor_(data)(grad);
+		//create layout from primitive, save the layout to tensor grad
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&layout, concat_split, dnnResourceMultipleDst + i) , err );
+		grad->mkldnnLayout = (long long)layout;
+	}
+	CHECK_ERR(dnnExecute_F32(concat_split, split_res), err);
+
+#if LOG_ENABLE
+	fprintf(stderr, "Concat_MKLDNN_backward_split end. \n");
+#endif
 
 }
+
+
 
 #endif
