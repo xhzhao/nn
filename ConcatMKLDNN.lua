@@ -72,7 +72,7 @@ function Concat:updateGradInput(input, gradOutput)
    self.gradInput:resizeAs(input)
    local gradOutputBuffer = {}
    for i,module in ipairs(self.modules) do
-      local gradOutputPart = torch.Tensor()
+      local gradOutputPart = torch.FloatTensor()
       gradOutputPart:resizeAs(module.output)
       gradOutputBuffer[i] = gradOutputPart
       input.THNN.Concat_MKLDNN_setupLongTensor(self.gradOutputArray:cdata(), gradOutputPart:cdata(), i)
@@ -133,7 +133,7 @@ function Concat:backward(input, gradOutput, scale)
    self.gradInput:resizeAs(input)
    local gradOutputBuffer = {}
    for i,module in ipairs(self.modules) do
-      local gradOutputPart = torch.Tensor()
+      local gradOutputPart = torch.FloatTensor()
       gradOutputPart:resizeAs(module.output)
       gradOutputBuffer[i] = gradOutputPart
       input.THNN.Concat_MKLDNN_setupLongTensor(self.gradOutputArray:cdata(), gradOutputPart:cdata(), i)
