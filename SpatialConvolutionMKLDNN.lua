@@ -18,9 +18,9 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
 
    self.group = group or 1
    --self.weight = torch.randn(nOutputPlane, nInputPlane*kH*kW) 
-   self.weight = torch.Tensor(nOutputPlane, nInputPlane*kH*kW)
+   self.weight = torch.Tensor(nOutputPlane, nInputPlane*kH*kW/self.group)
    self.bias = torch.Tensor(nOutputPlane)
-   self.gradWeight = torch.Tensor(nOutputPlane, nInputPlane*kH*kW)
+   self.gradWeight = torch.Tensor(nOutputPlane, nInputPlane*kH*kW/self.group)
    self.gradBias = torch.Tensor(nOutputPlane)
 
    self:setEngine(1)
