@@ -330,7 +330,7 @@ void THNN_(SpatialAveragePooling_MKLDNN_updateOutput)(
 #if LOG_ENABLE || MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
-	fprintf(stderr,"	Average Pooling MKLDNN time forward= %.2f ms\n",duration );
+	fprintf(stderr,"	AveragPooling MKLDNN time forward = %.2f ms\n",duration );
 #endif
   /* cleanup */
   THTensor_(free)(input);
@@ -450,7 +450,7 @@ void THNN_(SpatialAveragePooling_MKLDNN_updateGradInput)(
 #if LOG_ENABLE || MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
-	fprintf(stderr,"	Averagepooling MKLDNN time backward= %.2f ms\n",duration );
+	fprintf(stderr,"	Averagepooling MKLDNN time backward = %.2f ms\n",duration );
 #endif
   }
 

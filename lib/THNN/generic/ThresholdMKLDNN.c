@@ -218,6 +218,11 @@ void THNN_(Threshold_MKLDNN_updateOutput)(
 	{
 		output->mkldnnLayout = primitives->storage->data[RELU_LAYOUT_FORWARD_OUTPUT];
 	}
+#if MKL_TIME
+	gettimeofday(&end,NULL);
+	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+	fprintf(stderr,"	Relu MKLDNN time forward = %.2f ms\n",duration );
+#endif
 #if LOG_ENABLE
 	fprintf(stderr, "MKLDNN Relu forward end \n");
 #endif
@@ -291,10 +296,10 @@ void THNN_(Threshold_MKLDNN_updateGradInput)(
 	}
 */	gradInput->mkldnnLayout = (long long)primitives->storage->data[RELU_LAYOUT_BACKWARD_INPUT];
 	
-#if LOG_ENABLE
+#if LOG_ENABLE | MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
-	fprintf(stderr,"	Relu backward time = %.2f ms\n",duration );
+	fprintf(stderr,"	Relu MKLDNN time backward = %.2f ms\n",duration );
 #endif
 }
 

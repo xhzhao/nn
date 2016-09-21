@@ -190,7 +190,7 @@ void THNN_(Concat_MKLDNN_updateOutput)(
 #if LOG_ENABLE || MKL_TIME
 	gettimeofday(&end,NULL);
 	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
-	fprintf(stderr,"	MaxPooling MKLDNN time forward= %.2f ms\n",duration );
+	fprintf(stderr,"	Concat MKLDNN time forward = %.2f ms\n",duration );
 #endif
 #if LOG_ENABLE
 	fprintf(stderr, "Concat_MKLDNN_updateOutput end. \n");
@@ -235,6 +235,11 @@ void THNN_(Concat_MKLDNN_backward_split)(
 	}
 	CHECK_ERR(dnnExecute_F32(concat_split, split_res), err);
 
+#if LOG_ENABLE || MKL_TIME
+	gettimeofday(&end,NULL);
+	double duration = (end.tv_sec - start.tv_sec) * 1000 + (double)(end.tv_usec - start.tv_usec) /1000;
+	fprintf(stderr,"	Concat MKLDNN time backward = %.2f ms\n",duration );
+#endif
 #if LOG_ENABLE
 	fprintf(stderr, "Concat_MKLDNN_backward_split end. \n");
 #endif
