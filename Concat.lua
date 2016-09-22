@@ -2,7 +2,7 @@ local Concat, parent = torch.class('nn.Concat', 'nn.Container')
 
 function Concat:__init(dimension)
    parent.__init(self)
-   self.size = torch.LongStorage()
+   self.outputSize = torch.LongStorage()
    self.dimension = dimension
 
    self:setEngine(0)
@@ -13,6 +13,7 @@ end
 
 function Concat:updateOutput(input)
 
+   self.outputSize =  self.outputSize or  torch.LongStorage()
    if self.initStep == 0 then
    	self.initStep = 1
 	self.dnnPrimitives = torch.LongTensor(20)
@@ -34,9 +35,9 @@ function Concat:updateOutput(input)
 
       self:ConvertLayoutBackToNCHW(currentOutput, i)
       if i == 1 then
-         self.size:resize(currentOutput:dim()):copy(currentOutput:size())
+         self.outputSize:resize(currentOutput:dim()):copy(currentOutput:size())
       else
-         self.size[self.dimension] = self.size[self.dimension] + currentOutput:size(self.dimension)
+         self.outputSize[self.dimension] = self.outputSize[self.dimension] + currentOutput:size(self.dimension)
       end
       if self.timerEnable then
         iterForward = sys.clock() - iterStartTime
@@ -46,7 +47,7 @@ function Concat:updateOutput(input)
       if self.timerEnable then
         iterStartTime = sys.clock()
       end
-   self.output:resize(self.size)
+   self.output:resize(self.outputSize)
 
    local offset = 1
    for i,module in ipairs(self.modules) do
