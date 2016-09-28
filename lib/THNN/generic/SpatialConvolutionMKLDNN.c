@@ -108,21 +108,24 @@ void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
 {
 	dnnError_t err;
 	dnnPrimitive_t cv_BacktoNCHW = NULL;
-	real * buffer = NULL;
+	real * dnnbuffer = NULL;
+	real * torchbuffer = NULL;
+	int N = input->size[0];
+	int inC = input->size[1];
+	int inH = input->size[2];
+	int inW = input->size[3];
+	dnnLayout_t mkldnnLayout = (dnnLayout_t)input->mkldnnLayout ;
 #if LOG_ENABLE
-	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW: start.");
+	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW: start, N=%d,C=%d,H=%d,W=%d,mkldnnLayout = 0x%x, input=0x%x, THTensor_(data)(input) = 0x%x \n",N,inC,inH,inW,mkldnnLayout,input, THTensor_(data)(input));
 #endif
 	if(initOk == 0)
 	{
-		int N = input->size[0];
-		int inC = input->size[1];
-		int inH = input->size[2];
-		int inW = input->size[3];
+
 
 		size_t inputSize[dimension] = 	{inW,inH,inC,N};
 		size_t inputStrides[dimension] = { 1, inW, inH * inW, inC * inH * inW };
 		dnnLayout_t lt_user_input = NULL;
-		dnnLayout_t mkldnnLayout = (dnnLayout_t)input->mkldnnLayout ;
+
 		CHECK_ERR( dnnLayoutCreate_F32(&lt_user_input, dimension, inputSize, inputStrides) , err );
 #if CONVERSION_LOG
 		int input_size = dnnLayoutGetMemorySize_F32(mkldnnLayout);
@@ -132,29 +135,44 @@ void THNN_(MKLDNN_ConvertLayoutBackToNCHW)(
 		if(!dnnLayoutCompare_F32(mkldnnLayout, lt_user_input))
 		{
 			CHECK_ERR( dnnConversionCreate_F32(&cv_BacktoNCHW, mkldnnLayout, lt_user_input), err );
-			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&buffer), lt_user_input), err );
-			primitives->storage->data[i*2] = (long long)cv_BacktoNCHW;
-			primitives->storage->data[i*2 + 1] = (long long)buffer;
+			CHECK_ERR( dnnAllocateBuffer_F32((void**)(&dnnbuffer), lt_user_input), err );
+			primitives->storage->data[i*3] = (long long)cv_BacktoNCHW;
+			primitives->storage->data[i*3 + 1] = (long long)dnnbuffer;
+			primitives->storage->data[i*3 + 2] = (long long)(THTensor_(data)(input));
+			torchbuffer = THTensor_(data)(input);
 		}
 	}
 	else
 	{
-		cv_BacktoNCHW = (dnnPrimitive_t)primitives->storage->data[i*2];
-		buffer = (real *)primitives->storage->data[i*2 + 1];
+		cv_BacktoNCHW = (dnnPrimitive_t)primitives->storage->data[i*3];
+		dnnbuffer = (real *)primitives->storage->data[i*3 + 1];
+		torchbuffer = (real *)primitives->storage->data[i*3 + 2];
 	}
 
 
-	if(cv_BacktoNCHW)
+	bool need_convert = (cv_BacktoNCHW != 0);
+	real * buffer = NULL;
+	if(need_convert)
 	{
-
 		//do not release the original buffer
 		real * inPtr = THTensor_(data)(input);
+		if(inPtr == torchbuffer)
+		{
+			//convert the torchbuffer to dnnbuffer
+			buffer = dnnbuffer;
+		}
+		else
+		{
+			//convert the dnnbuffer to torchbuffer
+			buffer = torchbuffer;
+		}
 		CHECK_ERR( dnnConversionExecute_F32(cv_BacktoNCHW, inPtr, buffer), err );
 		input->storage->data = buffer;
 		THStorage_(setMKLDNN)(input->storage);
 	}
 #if LOG_ENABLE
-	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW: end.");
+	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW:primitives = 0x%x, cv_BacktoNCHW = 0x%x, buffer = 0x%x, dnnbuffer = 0x%x, torchbuffer = 0x%x, need_convert = %d\n", primitives, cv_BacktoNCHW, buffer,dnnbuffer,torchbuffer,need_convert );
+	fprintf(stderr, "MKLDNN_ConvertLayoutBackToNCHW: end. \n");
 #endif
 
 }

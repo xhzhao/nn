@@ -82,11 +82,13 @@ function View:updateOutput(input)
    end
    if self.initStep == 0 then
    	self.initStep = 1
-	self.dnnPrimitives = torch.LongTensor(20)
+	self.viewdnnPrimitives = torch.LongTensor(20)
    else
 	self.mkldnnInitOk = 1
    end
-   self:ConvertLayoutBackToNCHW(input,0)
+   if input:nDimension() == 4 and  input:size(3) == input:size(4) and input:cdata().mkldnnLayout ~= 0 then
+      input.THNN.MKLDNN_ConvertLayoutBackToNCHW(input:cdata(),self.viewdnnPrimitives:cdata(),0,self.mkldnnInitOk)
+   end
    self.output = self.output or input.new()
    local bsz = batchsize(input, self.size, self.numInputDims, self.numElements)
    if bsz then
