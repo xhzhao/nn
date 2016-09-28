@@ -33,7 +33,7 @@ function Concat:updateOutput(input)
         iterStartTime = sys.clock()
       end
 
-      self:ConvertLayoutBackToNCHW(currentOutput, i)
+      --self:ConvertLayoutBackToNCHW(currentOutput, i)
       if i == 1 then
          self.outputSize:resize(currentOutput:dim()):copy(currentOutput:size())
       else
@@ -101,6 +101,7 @@ function Concat:updateGradInput(input, gradOutput)
       if currentGradInput then -- if the module does not produce a gradInput (for example first layer), then ignore it and move on.
          if i==1 then
             self.gradInput:copy(currentGradInput)
+            self.gradInput:cdata().mkldnnLayout = currentGradInput:cdata().mkldnnLayout
          else
             self.gradInput:add(currentGradInput)
          end
@@ -171,6 +172,7 @@ function Concat:backward(input, gradOutput, scale)
       if currentGradInput then -- if the module does not produce a gradInput (for example first layer), then ignore it and move on.
          if i==1 then
             self.gradInput:copy(currentGradInput)
+            self.gradInput:cdata().mkldnnLayout = currentGradInput:cdata().mkldnnLayout
          else
             self.gradInput:add(currentGradInput)
          end
