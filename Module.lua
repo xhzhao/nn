@@ -41,6 +41,13 @@ function Module:ConvertLayoutBackToNCHW(input, i)
    return 
 end
 
+function Module:updateForLoadSnapshot()
+   if sys and sys.initOk == 0 then
+      self.initStep = 0
+      self.mkldnnInitOk = 0
+   end
+end
+
 
 function Module:parameters()
    if self.weight and self.bias then

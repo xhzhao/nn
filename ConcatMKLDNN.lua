@@ -11,6 +11,7 @@ function Concat:__init(dimension)
 end
 
 function Concat:updateOutput(input)
+   self:updateForLoadSnapshot()
    self.outputSize = self.outputSize or torch.LongStorage()
    if self.initStep == 0 then
    	self.initStep = 1
