@@ -400,7 +400,12 @@ static void THNN_(SpatialConvolutionMM_MKLDNN_init_bwddata)(
 		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwddata_conv_filter, m_conv_bwd_data, dnnResourceFilter) , err );
 		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_bwddata_conv_output, m_conv_bwd_data, dnnResourceDiffDst) , err );
 
-		CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_filter, 	&buffer_bwddata_filter, lt_bwddata_conv_filter, lt_user_filter) , err );
+		//get forward filter layout, convert from forward filter to bdwdata filter
+		dnnPrimitive_t m_conv_forward = (dnnPrimitive_t)primitives->storage->data[FORWARD_INDEX];
+		dnnLayout_t lt_forward_conv_filter = NULL;
+		CHECK_ERR( dnnLayoutCreateFromPrimitive_F32(&lt_forward_conv_filter, m_conv_forward, dnnResourceFilter), err );
+
+		CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_filter, 	&buffer_bwddata_filter, lt_bwddata_conv_filter, lt_forward_conv_filter) , err );
 		CHECK_ERR( THNN_(init_conversion)(&cv_bwddata_output, 	&buffer_bwddata_output, lt_bwddata_conv_output, lt_user_output) , err );
 
                 int size1 = dnnLayoutGetMemorySize_F32(lt_bwddata_conv_input);
@@ -798,7 +803,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	}
 
 
-	THTensor_(transpose)(weight, weight, 0, 1);
+	//THTensor_(transpose)(weight, weight, 0, 1);
 
 	gettimeofday(&mid1,NULL);
 
@@ -814,7 +819,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 
 	THTensor_(resizeAs)(gradInput, input);
 	gettimeofday(&mid2,NULL);
-	THTensor_(zero)(gradInput);
+	//THTensor_(zero)(gradInput);
 
 
 
@@ -849,8 +854,9 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 
 
 		if(cv_bwddata_filter){
+			real * buffer_forward_filter 	= (real *)(primitives->storage->data[BUFFER_FORWARD_FILTER]);
 			resConv[dnnResourceFilter] = buffer_bwddata_filter;
-			convert_resources[dnnResourceFrom] = filterPtr;
+			convert_resources[dnnResourceFrom] = buffer_forward_filter;
 			convert_resources[dnnResourceTo]   = buffer_bwddata_filter;
 			CHECK_ERR( dnnExecute_F32(cv_bwddata_filter, convert_resources), err );
 			//fprintf(stderr, "		convert 2 called. \n");
@@ -912,7 +918,7 @@ void THNN_(SpatialConvolutionMM_MKLDNN_bwdData)(
 	fprintf(stderr,"	Convolution MKLDNN  bwddata time1 = %.2f ms \n",duration1);
 #endif
 
-	THTensor_(transpose)(weight, weight, 0, 1);
+	//THTensor_(transpose)(weight, weight, 0, 1);
 }
 
 
