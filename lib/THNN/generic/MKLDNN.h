@@ -58,6 +58,7 @@ typedef enum {
 
 typedef enum {
     dnnBorderZeros          = 0x0,
+    dnnBorderZerosAsymm     = 0x100,
     dnnBorderExtrapolation  = 0x3
 } dnnBorder_t;
 
