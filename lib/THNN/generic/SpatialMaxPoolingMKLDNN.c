@@ -33,7 +33,7 @@ static void THNN_(SpatialMaxPooling_MKLDNN_init_forward)(
 
 	size_t kernelSize[2] = { kH, kW };
 	size_t kernelStride[2] = { dH, dW };
-	int pad[dimension-2] = 	{-padW,-padH};
+	int pad[dimension] = 	{-padW,-padH,-padW,-padH};
 
 
 	real * resPool1[dnnResourceNumber] = {0};
@@ -61,8 +61,8 @@ static void THNN_(SpatialMaxPooling_MKLDNN_init_forward)(
 	dnnPrimitive_t pool1 = NULL;
 	dnnPrimitive_t pool_bwd = NULL;
 #if NEW_INTERFACE
-	CHECK_ERR( dnnPoolingCreateForward_F32(&pool1, attributes, dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, pad, dnnBorderZeros), err );
-	CHECK_ERR( dnnPoolingCreateBackward_F32(&pool_bwd,attributes,dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, pad,dnnBorderZeros), err );
+	CHECK_ERR( dnnPoolingCreateForward_F32(&pool1, attributes, dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, pad, dnnBorderZerosAsymm), err );
+	CHECK_ERR( dnnPoolingCreateBackward_F32(&pool_bwd,attributes,dnnAlgorithmPoolingMax,lt_user_input, kernelSize, kernelStride, pad,dnnBorderZerosAsymm), err );
 #endif
 	dnnLayout_t lt_pool_forward_output = NULL,lt_pool_forward_input = NULL,lt_pool_forward_workspace = NULL;
 	dnnPrimitive_t cv_forward_input = NULL,cv_forward_output = NULL;
