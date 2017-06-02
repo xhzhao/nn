@@ -10,6 +10,9 @@ void THNN_(MSECriterion_updateOutput)(
           THTensor *output,
           bool sizeAverage)
 {
+  THNN_CHECK_NELEMENT(input, target);
+  THNN_CHECK_DIM_SIZE(output, 1, 0, 1);
+
   real sum = 0;
   int dimI = input->nDimension;
   int dimO = target->nDimension;
@@ -49,6 +52,8 @@ void THNN_(MSECriterion_updateGradInput)(
           THTensor *gradInput,
           bool sizeAverage)
 {
+  THNN_CHECK_NELEMENT(input, target);
+  
   real norm = (sizeAverage ? 2./((real)THTensor_(nElement)(input)) : 2.);
 
   THTensor_(resizeAs)(gradInput, input);

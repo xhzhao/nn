@@ -62,6 +62,8 @@ void THNN_(SparseLinear_updateOutput)(
   THLongTensor * csr = THLongTensor_newWithSize1d(batchSize+1);
   THLongTensor_zero(csr);
 
+  weight = THTensor_(newContiguous)(weight);
+
 //#pragma omp parallel for private(i, h, hp0, hp1) schedule(static) if (nnz > 10000)
   for (i=0; i<nnz; i++) {
     hp0 = (long)(THNN_(get2d)(input, i, 0)) - 1;
@@ -106,6 +108,7 @@ void THNN_(SparseLinear_updateOutput)(
   }
   THTensor_(free)(output_row);
   THLongTensor_free(csr);
+  THTensor_(free)(weight);
 }
 
 void THNN_(SparseLinear_legacyUpdateOutput)(
@@ -122,6 +125,8 @@ void THNN_(SparseLinear_legacyUpdateOutput)(
   THArgCheck(THNN_(checkLegacyInput)(input), 2, "input size must be batchsize x nnz x 2");
   THArgCheck(THTensor_(isContiguous)(output), 3, "output must be contiguous");
   THArgCheck(THNN_(checkSize1D)(bias, outDim), 5, "bias size wrong");
+
+  weight = THTensor_(newContiguous)(weight);
 
   long batchSize = THTensor_(size)(input, 0);
   long nnz = THTensor_(size)(input, 1);
@@ -157,6 +162,7 @@ void THNN_(SparseLinear_legacyUpdateOutput)(
     THTensor_(cadd)(output_row, bias, 1.0, output_row);
   }
   THTensor_(free)(output_row);
+  THTensor_(free)(weight);
 }
 
 void THNN_(SparseLinear_accGradParameters)(
@@ -167,9 +173,11 @@ void THNN_(SparseLinear_accGradParameters)(
           THTensor *gradBias,
           THTensor *weight,
           THTensor *bias,
-          real weightDecay,
-          real scale)
+          accreal weightDecay_,
+          accreal scale_)
 {
+  real weightDecay = TH_CONVERT_ACCREAL_TO_REAL(weightDecay_);
+  real scale = TH_CONVERT_ACCREAL_TO_REAL(scale_);
   long h, i, col, hp0, hp1;
   long outDim = THTensor_(size)(weight, 0);
   long inDim = THTensor_(size)(weight, 1);
@@ -187,6 +195,7 @@ void THNN_(SparseLinear_accGradParameters)(
 
   THLongTensor* csc = THLongTensor_newWithSize1d(inDim+1);
   THLongTensor_zero(csc);
+  weight = THTensor_(newContiguous)(weight);
 
 #pragma omp parallel for private(i, h, hp0, hp1) schedule(static) if (nnz > 10000)
   for (i = 0; i < nnz; i++) {
@@ -225,7 +234,7 @@ void THNN_(SparseLinear_accGradParameters)(
 
   // gradBias += gradOutput
   THTensor* buf = THTensor_(new)();
-  THTensor_(sum)(buf, gradOutput, 0);
+  THTensor_(sum)(buf, gradOutput, 0, 1);
   THTensor_(cadd)(gradBias, gradBias, scale, buf);
   THTensor_(free)(buf);
   THLongTensor_free(csc);
@@ -233,6 +242,7 @@ void THNN_(SparseLinear_accGradParameters)(
   if (weightDecay != 0) {
     THTensor_(cadd)(gradWeight, gradWeight, weightDecay, weight);
   }
+  THTensor_(free)(weight);
 }
 
 void THNN_(SparseLinear_legacyAccGradParameters)(
@@ -243,9 +253,11 @@ void THNN_(SparseLinear_legacyAccGradParameters)(
           THTensor *gradBias,
           THTensor *weight,
           THTensor *bias,
-          real weightDecay,
-          real scale)
+          accreal weightDecay_,
+          accreal scale_)
 {
+  real weightDecay = TH_CONVERT_ACCREAL_TO_REAL(weightDecay_);
+  real scale = TH_CONVERT_ACCREAL_TO_REAL(scale_);
   long h, i;
   long outDim = THTensor_(size)(weight, 0);
   long inDim = THTensor_(size)(weight, 1);
@@ -308,8 +320,9 @@ void THNN_(SparseLinear_updateParameters)(
           THTensor *gradWeight,
           THTensor *gradBias,
           THTensor *lastInput,
-          real learningRate)
+          accreal learningRate_)
 {
+  real learningRate = TH_CONVERT_ACCREAL_TO_REAL(learningRate_);
   long h, i;
   long outDim = weight->size[0];
   long inDim = weight->size[1];
@@ -381,8 +394,9 @@ void THNN_(SparseLinear_legacyUpdateParameters)(
           THTensor *gradWeight,
           THTensor *gradBias,
           THTensor *lastInput,
-          real learningRate)
+          accreal learningRate_)
 {
+  real learningRate = TH_CONVERT_ACCREAL_TO_REAL(learningRate_);
   long h, i;
   long outDim = weight->size[0];
   long inDim = weight->size[1];
