@@ -19,3 +19,5 @@ This package provides an easy and modular way to build and train simple or compl
    * [Training](doc/training.md#nn.traningneuralnet.dok): how to train a neural network using [optim](https://github.com/torch/optim);
    * [Testing](doc/testing.md): how to test your modules.
    * [Experimental Modules](https://github.com/clementfarabet/lua---nnx/blob/master/README.md): a package containing experimental modules and criteria.
+   * 
+This readme should be switch to the new MKL version

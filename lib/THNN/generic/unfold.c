@@ -6,6 +6,8 @@
 # include <windows.h>
 #endif
 
+#define TH_OMP_THRESHOLD 10
+
 /* note: due to write issues, this one cannot be parallelized as well as unfolded_copy */
 void THNN_(unfolded_acc)(
           THTensor *finput,
@@ -23,63 +25,62 @@ void THNN_(unfolded_acc)(
           int outputHeight)
 {
 #ifdef _WIN32
-  LONG_PTR nip;
+  LONG_PTR k;
 #else
-  size_t nip;
+  size_t k;
 #endif
 
   real *input_data = THTensor_(data)(input);
   real *finput_data = THTensor_(data)(finput);
 
-#pragma omp parallel for private(nip)
-  for(nip = 0; nip < nInputPlane; nip++)
-  {
-    size_t kw, kh, y, x;
-    long long ix = 0, iy = 0;
-    for(kh = 0; kh < kH; kh++)
-    {
-      for(kw = 0; kw < kW; kw++)
-      {
-        real *src = finput_data + nip*(kH*kW*outputHeight*outputWidth) + kh*(kW*outputHeight*outputWidth) + kw*(outputHeight*outputWidth);
-        real *dst = input_data + nip*(inputHeight*inputWidth);
-        if (padW > 0 || padH > 0) {
-          size_t lpad,rpad;
-          for(y = 0; y < outputHeight; y++) {
-            iy = (long long)(y*dH - padH + kh);
-            if (iy < 0 || iy >= inputHeight) {
-            } else {
-              if (dW==1){
-                 ix = (long long)(0 - padW + kw);
-                 lpad = fmaxf(0,(int)(padW-kw));
-                 rpad = fmaxf(0,(int)(padW-(kW-kw-1)));
-                 THVector_(add)(dst+(size_t)(iy*inputWidth+ix+lpad), src+(size_t)(y*outputWidth+lpad), 1, outputWidth - lpad - rpad); /* note: THVector_add could handle 1 value better */
-              }
-              else{
-                for (x=0; x<outputWidth; x++){
-                   ix = (long long)(x*dW - padW + kw);
-                   if (ix < 0 || ix >= inputWidth){
-                   }else
-                     THVector_(add)(dst+(size_t)(iy*inputWidth+ix), src+(size_t)(y*outputWidth+x), 1, 1);
-                }
-              }
-            }
-          }
+#pragma omp parallel for private(k)
+  for(k = 0; k < nInputPlane*kH*kW; k++) {
+    size_t nip = k / (kH*kW);
+    size_t rest = k % (kH*kW);
+    size_t kh = rest / kW;
+    size_t kw = rest % kW;
+    size_t x,y;
+    long long ix,iy;
+    real *src = finput_data + nip*(kH*kW*outputHeight*outputWidth) + kh*(kW*outputHeight*outputWidth) + kw*(outputHeight*outputWidth);
+    real *dst = input_data + nip*(inputHeight*inputWidth);
+    if (padW > 0 || padH > 0) {
+      size_t lpad,rpad;
+      for(y = 0; y < outputHeight; y++) {
+        iy = (long long)(y*dH - padH + kh);
+        if (iy < 0 || iy >= inputHeight) {
         } else {
-          for(y = 0; y < outputHeight; y++) {
-            iy = (long long)(y*dH + kh);
-            ix = (long long)(0 + kw);
-            if (dW == 1 )
-               THVector_(add)(dst+(size_t)(iy*inputWidth+ix), src+(size_t)(y*outputWidth), 1, outputWidth); /* note: THVector_add could handle 1 value better */
-            else{
-              for(x = 0; x < outputWidth; x++)
-                THVector_(add)(dst+(size_t)(iy*inputWidth+ix+x*dW), src+(size_t)(y*outputWidth+x), 1, 1);
+          if (dW==1){
+             ix = (long long)(0 - padW + kw);
+             lpad = fmaxf(0,(int)(padW-kw));
+             rpad = fmaxf(0,(int)(padW-(kW-kw-1)));
+             THVector_(add)(dst+(size_t)(iy*inputWidth+ix+lpad), src+(size_t)(y*outputWidth+lpad), 1, outputWidth - lpad - rpad); /* note: THVector_add could handle 1 value better */
+          }
+          else{
+            for (x=0; x<outputWidth; x++){
+               ix = (long long)(x*dW - padW + kw);
+               if (ix < 0 || ix >= inputWidth){
+               }else
+                 THVector_(add)(dst+(size_t)(iy*inputWidth+ix), src+(size_t)(y*outputWidth+x), 1, 1);
             }
           }
         }
       }
+    } else {
+      for(y = 0; y < outputHeight; y++) {
+        iy = (long long)(y*dH + kh);
+        ix = (long long)(0 + kw);
+        if (dW == 1 )
+           THVector_(add)(dst+(size_t)(iy*inputWidth+ix), src+(size_t)(y*outputWidth), 1, outputWidth); /* note: THVector_add could handle 1 value better */
+        else{
+          for(x = 0; x < outputWidth; x++)
+            THVector_(add)(dst+(size_t)(iy*inputWidth+ix+x*dW), src+(size_t)(y*outputWidth+x), 1, 1);
+        }
+      }
     }
+    
   }
 }
+
 
 void THNN_(unfolded_copy)(
           THTensor *finput,
