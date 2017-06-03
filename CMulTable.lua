@@ -7,10 +7,12 @@ function CMulTable:__init()
 end
 
 function CMulTable:updateOutput(input)
+   start=sys.clock()
    self.output:resizeAs(input[1]):copy(input[1])
    for i=2,#input do
       self.output:cmul(input[i])
    end
+   print("CMulTable_F = ", sys.clock() - start)
    return self.output
 end
 
@@ -32,6 +34,7 @@ function CMulTable:updateGradInput_efficient(input, gradOutput)
 end
 
 function CMulTable:updateGradInput(input, gradOutput)
+   start=sys.clock()
    for i=1,#input do
       self.gradInput[i] = self.gradInput[i] or input[1].new()
       self.gradInput[i]:resizeAs(input[i]):copy(gradOutput)
@@ -45,7 +48,7 @@ function CMulTable:updateGradInput(input, gradOutput)
    for i=#input+1, #self.gradInput do
        self.gradInput[i] = nil
    end
-
+   print("CMulTable_B = ", sys.clock() - start)
    return self.gradInput
 end
 

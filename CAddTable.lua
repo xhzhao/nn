@@ -7,6 +7,7 @@ function CAddTable:__init(ip)
 end
 
 function CAddTable:updateOutput(input)
+   start=sys.clock()
    if self.inplace then
       self.output:set(input[1])
    else
@@ -15,10 +16,12 @@ function CAddTable:updateOutput(input)
    for i=2,#input do
       self.output:add(input[i])
    end
+   print("CAddTable_F = ", sys.clock() - start)
    return self.output
 end
 
 function CAddTable:updateGradInput(input, gradOutput)
+   start=sys.clock()
    for i=1,#input do
       self.gradInput[i] = self.gradInput[i] or input[1].new()
       if self.inplace then
@@ -31,6 +34,6 @@ function CAddTable:updateGradInput(input, gradOutput)
    for i=#input+1, #self.gradInput do
        self.gradInput[i] = nil
    end
-
+   print("CAddTable_B = ", sys.clock() - start)
    return self.gradInput
 end

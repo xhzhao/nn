@@ -19,6 +19,7 @@ function Linear:noBias()
 end
 
 function Linear:reset(stdv)
+   start=sys.clock()
    if stdv then
       stdv = stdv * math.sqrt(3)
    else
@@ -39,6 +40,7 @@ function Linear:reset(stdv)
       self.weight:uniform(-stdv, stdv)
       if self.bias then self.bias:uniform(-stdv, stdv) end
    end
+   print("Linear_F = ", sys.clock() - start)
    return self
 end
 
@@ -51,6 +53,7 @@ function Linear:updateAddBuffer(input)
 end
 
 function Linear:updateOutput(input)
+   start=sys.clock()
    if input:dim() == 1 then
       self.output:resize(self.weight:size(1))
       if self.bias then self.output:copy(self.bias) else self.output:zero() end
@@ -68,13 +71,13 @@ function Linear:updateOutput(input)
    else
       error('input must be vector or matrix')
    end
-
+   print("Linear_B1 = ", sys.clock() - start)
    return self.output
 end
 
 function Linear:updateGradInput(input, gradOutput)
    if self.gradInput then
-
+      start=sys.clock()
       local nElement = self.gradInput:nElement()
       self.gradInput:resizeAs(input)
       if self.gradInput:nElement() ~= nElement then
@@ -85,7 +88,7 @@ function Linear:updateGradInput(input, gradOutput)
       elseif input:dim() == 2 then
          self.gradInput:addmm(0, 1, gradOutput, self.weight)
       end
-
+      print("Linear_B2 = ", sys.clock() - start)
       return self.gradInput
    end
 end
