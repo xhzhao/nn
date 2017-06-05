@@ -24,6 +24,7 @@ function ClassNLLCriterion:__len()
 end
 
 function ClassNLLCriterion:updateOutput(input, target)
+   start=sys.clock()
    if type(target) == 'number' then
       if torch.typename(input):find('torch%.Cuda.*Tensor') then
           self.target = torch.CudaLongTensor and self.target:cudaLong() or self.target:cuda()
@@ -48,10 +49,12 @@ function ClassNLLCriterion:updateOutput(input, target)
       self.ignoreIndex
    )
    self.output = self.output_tensor[1]
+   print("ClassNLLCriterion_F = ", sys.clock() - start)
    return self.output, self.total_weight_tensor[1]
 end
 
 function ClassNLLCriterion:updateGradInput(input, target)
+   start=sys.clock()
    if type(target) == 'number' then
       if torch.typename(input):find('torch%.Cuda.*Tensor') then
           self.target = torch.CudaLongTensor and self.target:cudaLong() or self.target:cuda()
@@ -77,6 +80,6 @@ function ClassNLLCriterion:updateGradInput(input, target)
       self.total_weight_tensor:cdata(),
       self.ignoreIndex
    )
-
+   print("ClassNLLCriterion_B = ", sys.clock() - start)
    return self.gradInput
 end
