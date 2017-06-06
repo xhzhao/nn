@@ -17,6 +17,7 @@ function SplitTable:_getPositiveDimension(input)
 end
 
 function SplitTable:updateOutput(input)
+   local start=sys.clock()
    local dimension = self:_getPositiveDimension(input)
    local slices = input:size(dimension)
 
@@ -25,10 +26,12 @@ function SplitTable:updateOutput(input)
       currentOutput[#currentOutput+1] = input:select(dimension,i)
    end
    self.output = currentOutput
+   print("SplitTable_F = ", sys.clock() - start)
    return self.output
 end 
 
 function SplitTable:updateGradInput(input, gradOutput)
+   local start=sys.clock()
    local dimension = self:_getPositiveDimension(input)
    local slices = input:size(dimension)
    if self.gradInput then
@@ -39,5 +42,6 @@ function SplitTable:updateGradInput(input, gradOutput)
          self.gradInput:select(dimension,i):copy(currentGradInput)
       end
    end
+   print("SplitTable_B = ", sys.clock() - start)
    return self.gradInput
 end

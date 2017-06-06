@@ -15,6 +15,7 @@ function Dropout:__init(p,v1,inplace,stochasticInference)
 end
 
 function Dropout:updateOutput(input)
+   local start=sys.clock()
    if self.inplace then
       self.output:set(input)
    else
@@ -32,10 +33,12 @@ function Dropout:updateOutput(input)
          self.output:mul(1-self.p)
       end
    end
+   print("Dropout_F = ", sys.clock() - start)
    return self.output
 end
 
 function Dropout:updateGradInput(input, gradOutput)
+   local start=sys.clock()
    if self.inplace then
       self.gradInput:set(gradOutput)
    else
@@ -50,6 +53,7 @@ function Dropout:updateGradInput(input, gradOutput)
          self.gradInput:mul(1-self.p)
       end
    end
+   print("Dropout_B = ", sys.clock() - start)
    return self.gradInput
 end
 

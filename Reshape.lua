@@ -29,6 +29,7 @@ function Reshape:__init(...)
 end
 
 function Reshape:updateOutput(input)
+   local start=sys.clock()
    if not input:isContiguous() then
       self._input = self._input or input.new()
       self._input:resizeAs(input)
@@ -45,10 +46,12 @@ function Reshape:updateOutput(input)
       self.batchsize[1] = input:size(1)
       self.output:view(input, self.batchsize)
    end
+   print("Dropout_F = ", sys.clock() - start)
    return self.output
 end
 
 function Reshape:updateGradInput(input, gradOutput)
+   local start=sys.clock()
    if not gradOutput:isContiguous() then
       self._gradOutput = self._gradOutput or gradOutput.new()
       self._gradOutput:resizeAs(gradOutput)
@@ -57,6 +60,7 @@ function Reshape:updateGradInput(input, gradOutput)
    end
 
    self.gradInput:viewAs(gradOutput, input)
+   print("Dropout_B = ", sys.clock() - start)
    return self.gradInput
 end
 
