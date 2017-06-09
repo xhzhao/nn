@@ -19,7 +19,7 @@ function Linear:noBias()
 end
 
 function Linear:reset(stdv)
-   start=sys.clock()
+
    if stdv then
       stdv = stdv * math.sqrt(3)
    else
@@ -40,7 +40,6 @@ function Linear:reset(stdv)
       self.weight:uniform(-stdv, stdv)
       if self.bias then self.bias:uniform(-stdv, stdv) end
    end
-   print("Linear_F = ", sys.clock() - start)
    return self
 end
 
@@ -71,7 +70,7 @@ function Linear:updateOutput(input)
    else
       error('input must be vector or matrix')
    end
-   print("Linear_B1 = ", sys.clock() - start)
+   print("Linear_F = ", sys.clock() - start)
    return self.output
 end
 
@@ -88,12 +87,13 @@ function Linear:updateGradInput(input, gradOutput)
       elseif input:dim() == 2 then
          self.gradInput:addmm(0, 1, gradOutput, self.weight)
       end
-      print("Linear_B2 = ", sys.clock() - start)
+      print("Linear_B1 = ", sys.clock() - start)
       return self.gradInput
    end
 end
 
 function Linear:accGradParameters(input, gradOutput, scale)
+   start=sys.clock()
    scale = scale or 1
    if input:dim() == 1 then
       self.gradWeight:addr(scale, gradOutput, input)
@@ -106,6 +106,7 @@ function Linear:accGradParameters(input, gradOutput, scale)
          self.gradBias:addmv(scale, gradOutput:t(), self.addBuffer)
       end
    end
+   print("Linear_B2 = ", sys.clock() - start)
 end
 
 function Linear:sharedAccUpdateGradParameters(input, gradOutput, lr)
