@@ -9,6 +9,7 @@ function Replicate:__init(nf, dim, ndim)
 end
 
 function Replicate:updateOutput(input)
+   local start = sys.clock()
    self.dim = self.dim or 1 --backwards compatible
    assert(
       self.dim <= input:dim()+1,
@@ -35,10 +36,12 @@ function Replicate:updateOutput(input)
       st[i+offset] = input:stride(i)
    end
    self.output:set(input:storage(),input:storageOffset(),sz,st)
+   print("Relicate_F = ",sys.clock() - start)
    return self.output
 end
 
 function Replicate:updateGradInput(input, gradOutput)
+   local start = sys.clock()
    self.gradInput:resizeAs(input):zero()
    local batchOffset = self.ndim and input:dim() > self.ndim and 1 or 0
    local rdim = self.dim + batchOffset
@@ -53,5 +56,6 @@ function Replicate:updateGradInput(input, gradOutput)
    end
    local gradInput = self.gradInput:view(sz)
    gradInput:sum(gradOutput, rdim)
+   print("Relicate_B = ",sys.clock() - start)
    return self.gradInput
 end

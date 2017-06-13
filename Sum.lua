@@ -26,6 +26,7 @@ function Sum:_getPositiveDimension(input)
 end
 
 function Sum:updateOutput(input)
+   local start = sys.clock()
    local dimension = self:_getPositiveDimension(input)
    if type(self.output) == 'number' then
       self.output = input.new()
@@ -37,10 +38,12 @@ function Sum:updateOutput(input)
    if (self.squeeze == nil or self.squeeze) and self.output:nDimension() > 1 then
       self.output:set(self.output:select(dimension, 1))
    end
+   print("Sum_F = ",sys.clock() - start)
    return self.output
 end
 
 function Sum:updateGradInput(input, gradOutput)
+   local start = sys.clock()
    local dimension = self:_getPositiveDimension(input)
    -- zero-strides don't work with MKL/BLAS, so
    -- don't set self.gradInput to zero-stride tensor.
@@ -58,6 +61,7 @@ function Sum:updateGradInput(input, gradOutput)
    if self.sizeAverage then
       self.gradInput:div(input:size(dimension))
    end
+   print("Sum_B = ",sys.clock() - start)
    return self.gradInput
 end
 
