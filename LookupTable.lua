@@ -66,6 +66,7 @@ function LookupTable:makeInputContiguous(input)
 end
 
 function LookupTable:updateOutput(input)
+   local start = sys.clock()
    self:backCompatibility()
    self:renorm(input)
    input = self:makeInputContiguous(input)
@@ -77,10 +78,12 @@ function LookupTable:updateOutput(input)
    else
       error("input must be a vector or matrix")
    end
+   print("LookupTable_F = ", sys.clock() - start)
    return self.output
 end
 
 function LookupTable:updateGradInput(input, gradOutput)
+   local start = sys.clock()
    -- the input can be of any type (as in the forward it's
    -- converted anyway to LongTensor) thus, need to allocate
    -- new memory each time the user changes the input type
@@ -90,10 +93,12 @@ function LookupTable:updateGradInput(input, gradOutput)
    if not self.gradInput:isSameSizeAs(input) then
       self.gradInput:resizeAs(input):zero()
    end
+   print("LookupTable_B = ", sys.clock() - start)
    return self.gradInput
 end
 
 function LookupTable:accGradParameters(input, gradOutput, scale)
+   local start = sys.clock()
    self:backCompatibility()
    input = self.copiedInput and self._input or input
    if input:dim() == 2 then
@@ -113,6 +118,7 @@ function LookupTable:accGradParameters(input, gradOutput, scale)
       self.paddingValue or 0,
       scale or 1
    )
+   print("LookupTable_B = ", sys.clock() - start)
 end
 
 function LookupTable:renorm(input)
