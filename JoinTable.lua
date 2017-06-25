@@ -19,7 +19,7 @@ function JoinTable:_getPositiveDimension(input)
 end
 
 function JoinTable:updateOutput(input)
-   start=sys.clock()
+   local start=sys.clock()
    local dimension = self:_getPositiveDimension(input)
 
    for i=1,#input do
@@ -45,7 +45,7 @@ function JoinTable:updateOutput(input)
 end
 
 function JoinTable:updateGradInput(input, gradOutput)
-   start=sys.clock()
+   local start=sys.clock()
    local dimension = self:_getPositiveDimension(input)
 
    for i=1,#input do

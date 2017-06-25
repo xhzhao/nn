@@ -1,7 +1,7 @@
 local Sigmoid = torch.class('nn.Sigmoid', 'nn.Module')
 
 function Sigmoid:updateOutput(input)
-   start=sys.clock()
+   local start=sys.clock()
    input.THNN.Sigmoid_updateOutput(
       input:cdata(),
       self.output:cdata()
@@ -11,7 +11,7 @@ function Sigmoid:updateOutput(input)
 end
 
 function Sigmoid:updateGradInput(input, gradOutput)
-   start=sys.clock()
+   local start=sys.clock()
    input.THNN.Sigmoid_updateGradInput(
       input:cdata(),
       gradOutput:cdata(),

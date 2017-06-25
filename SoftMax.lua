@@ -1,7 +1,7 @@
 local SoftMax, _ = torch.class('nn.SoftMax', 'nn.Module')
 
 function SoftMax:updateOutput(input)
-   start=sys.clock()
+   local start=sys.clock()
    input.THNN.SoftMax_updateOutput(
       input:cdata(),
       self.output:cdata()
@@ -11,7 +11,7 @@ function SoftMax:updateOutput(input)
 end
 
 function SoftMax:updateGradInput(input, gradOutput)
-   start=sys.clock()
+   local start=sys.clock()
    input.THNN.SoftMax_updateGradInput(
       input:cdata(),
       gradOutput:cdata(),

@@ -1,7 +1,7 @@
 local Tanh = torch.class('nn.Tanh', 'nn.Module')
 
 function Tanh:updateOutput(input)
-   start=sys.clock()
+   local start=sys.clock()
    input.THNN.Tanh_updateOutput(
       input:cdata(),
       self.output:cdata()
@@ -11,7 +11,7 @@ function Tanh:updateOutput(input)
 end
 
 function Tanh:updateGradInput(input, gradOutput)
-   start=sys.clock()
+   local start=sys.clock()
    input.THNN.Tanh_updateGradInput(
       input:cdata(),
       gradOutput:cdata(),

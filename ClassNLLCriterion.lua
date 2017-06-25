@@ -24,7 +24,7 @@ function ClassNLLCriterion:__len()
 end
 
 function ClassNLLCriterion:updateOutput(input, target)
-   start=sys.clock()
+   local start=sys.clock()
    if type(target) == 'number' then
       if torch.typename(input):find('torch%.Cuda.*Tensor') then
           self.target = torch.CudaLongTensor and self.target:cudaLong() or self.target:cuda()
@@ -54,7 +54,7 @@ function ClassNLLCriterion:updateOutput(input, target)
 end
 
 function ClassNLLCriterion:updateGradInput(input, target)
-   start=sys.clock()
+   local start=sys.clock()
    if type(target) == 'number' then
       if torch.typename(input):find('torch%.Cuda.*Tensor') then
           self.target = torch.CudaLongTensor and self.target:cudaLong() or self.target:cuda()

@@ -17,7 +17,7 @@ function MM:__init(transA, transB)
 end
 
 function MM:updateOutput(input)
-  start=sys.clock()
+  local start=sys.clock()
   assert(#input == 2, 'input must be a pair of minibatch matrices')
   local a, b = table.unpack(input)
   assert(a:nDimension() == 2 or a:nDimension() == 3, 'input tensors must be 2D or 3D')
@@ -47,7 +47,7 @@ function MM:updateOutput(input)
 end
 
 function MM:updateGradInput(input, gradOutput)
-  start=sys.clock()
+  local start=sys.clock()
   self.gradInput[1] = self.gradInput[1] or input[1].new()
   self.gradInput[2] = self.gradInput[2] or input[2].new()
 

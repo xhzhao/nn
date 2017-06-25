@@ -7,7 +7,7 @@ function CAddTable:__init(ip)
 end
 
 function CAddTable:updateOutput(input)
-   start=sys.clock()
+   local start=sys.clock()
    if self.inplace then
       self.output:set(input[1])
    else
@@ -21,7 +21,7 @@ function CAddTable:updateOutput(input)
 end
 
 function CAddTable:updateGradInput(input, gradOutput)
-   start=sys.clock()
+   local start=sys.clock()
    for i=1,#input do
       self.gradInput[i] = self.gradInput[i] or input[1].new()
       if self.inplace then

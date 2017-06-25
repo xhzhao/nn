@@ -52,7 +52,7 @@ function Linear:updateAddBuffer(input)
 end
 
 function Linear:updateOutput(input)
-   start=sys.clock()
+   local start=sys.clock()
    if input:dim() == 1 then
       self.output:resize(self.weight:size(1))
       if self.bias then self.output:copy(self.bias) else self.output:zero() end
@@ -76,7 +76,7 @@ end
 
 function Linear:updateGradInput(input, gradOutput)
    if self.gradInput then
-      start=sys.clock()
+      local start=sys.clock()
       local nElement = self.gradInput:nElement()
       self.gradInput:resizeAs(input)
       if self.gradInput:nElement() ~= nElement then
@@ -93,7 +93,7 @@ function Linear:updateGradInput(input, gradOutput)
 end
 
 function Linear:accGradParameters(input, gradOutput, scale)
-   start=sys.clock()
+   local start=sys.clock()
    scale = scale or 1
    if input:dim() == 1 then
       self.gradWeight:addr(scale, gradOutput, input)
