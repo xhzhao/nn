@@ -70,7 +70,18 @@ function Linear:updateOutput(input)
    else
       error('input must be vector or matrix')
    end
-   print("Linear_F = ", sys.clock() - start)
+   self.t1 = self.t1 + sys.clock() - start
+   self.count = self.count + 1
+   if self.count == 50 then
+      print("Linear_F = ", self.t1)
+      print("Linear_B1 = ", self.t2)
+      print("Linear_B2 = ", self.t3)
+      self.t1 = 0
+      self.t2 = 0
+      self.t3 = 0
+      self.count = 0
+   end
+
    return self.output
 end
 
@@ -87,7 +98,7 @@ function Linear:updateGradInput(input, gradOutput)
       elseif input:dim() == 2 then
          self.gradInput:addmm(0, 1, gradOutput, self.weight)
       end
-      print("Linear_B1 = ", sys.clock() - start)
+      self.t2 = self.t2 + sys.clock() - start
       return self.gradInput
    end
 end
@@ -106,7 +117,8 @@ function Linear:accGradParameters(input, gradOutput, scale)
          self.gradBias:addmv(scale, gradOutput:t(), self.addBuffer)
       end
    end
-   print("Linear_B2 = ", sys.clock() - start)
+
+   self.t3 = self.t3 + sys.clock() - start
 end
 
 function Linear:sharedAccUpdateGradParameters(input, gradOutput, lr)

@@ -46,7 +46,16 @@ function Reshape:updateOutput(input)
       self.batchsize[1] = input:size(1)
       self.output:view(input, self.batchsize)
    end
-   print("Reshape_F = ", sys.clock() - start)
+   self.t1 = self.t1 + sys.clock() - start
+   self.count = self.count + 1
+   if self.count == 50 then
+      print("Reshape_F = ", self.t1)
+      print("Reshape_B = ", self.t2)
+      self.t1 = 0
+      self.t2 = 0
+      self.count = 0
+   end
+
    return self.output
 end
 
@@ -60,7 +69,7 @@ function Reshape:updateGradInput(input, gradOutput)
    end
 
    self.gradInput:viewAs(gradOutput, input)
-   print("Reshape_B = ", sys.clock() - start)
+   self.t2 = self.t2 + sys.clock() - start
    return self.gradInput
 end
 

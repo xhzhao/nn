@@ -4,6 +4,11 @@ function Module:__init()
    self.gradInput = torch.Tensor()
    self.output = torch.Tensor()
    self._type = self.output:type()
+   self.count = 0
+   self.t1 = 0
+   self.t2 = 0
+   self.t3 = 0
+
 end
 
 function Module:parameters()

@@ -26,7 +26,16 @@ function SplitTable:updateOutput(input)
       currentOutput[#currentOutput+1] = input:select(dimension,i)
    end
    self.output = currentOutput
-   print("SplitTable_F = ", sys.clock() - start)
+   self.t1 = self.t1 + sys.clock() - start
+   self.count = self.count + 1
+   if self.count == 50 then
+      print("SplitTable_F = ", self.t1)
+      print("SplitTable_B = ", self.t2)
+      self.t1 = 0
+      self.t2 = 0
+      self.count = 0
+   end
+
    return self.output
 end 
 
@@ -42,6 +51,6 @@ function SplitTable:updateGradInput(input, gradOutput)
          self.gradInput:select(dimension,i):copy(currentGradInput)
       end
    end
-   print("SplitTable_B = ", sys.clock() - start)
+   self.t2 = self.t2 + sys.clock() - start
    return self.gradInput
 end

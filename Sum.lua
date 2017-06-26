@@ -38,7 +38,15 @@ function Sum:updateOutput(input)
    if (self.squeeze == nil or self.squeeze) and self.output:nDimension() > 1 then
       self.output:set(self.output:select(dimension, 1))
    end
-   print("Sum_F = ",sys.clock() - start)
+   self.t1 = self.t1 + sys.clock() - start
+   self.count = self.count + 1
+   if self.count == 50 then
+      print("Sum_F = ", self.t1)
+      print("Sum_B = ", self.t2)
+      self.t1 = 0
+      self.t2 = 0
+      self.count = 0
+   end
    return self.output
 end
 
@@ -61,7 +69,7 @@ function Sum:updateGradInput(input, gradOutput)
    if self.sizeAverage then
       self.gradInput:div(input:size(dimension))
    end
-   print("Sum_B = ",sys.clock() - start)
+   self.t2 = self.t2 + sys.clock() - start
    return self.gradInput
 end
 

@@ -40,7 +40,16 @@ function JoinTable:updateOutput(input)
          currentOutput:size(dimension)):copy(currentOutput)
       offset = offset + currentOutput:size(dimension)
    end
-   print("JoinTable_F = ", sys.clock() - start)
+   self.t1 = self.t1 + sys.clock() - start
+   self.count = self.count + 1
+   if self.count == 50 then
+      print("JoinTable_F = ", self.t1)
+      print("JoinTable_B = ", self.t2)
+      self.t1 = 0
+      self.t2 = 0
+      self.count = 0
+   end
+
    return self.output
 end
 
@@ -68,7 +77,7 @@ function JoinTable:updateGradInput(input, gradOutput)
       self.gradInput[i]:copy(currentGradInput)
       offset = offset + currentOutput:size(dimension)
    end
-   print("JoinTable_B = ", sys.clock() - start)
+   self.t2 = self.t2 + sys.clock() - start
    return self.gradInput
 end
 

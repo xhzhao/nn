@@ -78,7 +78,15 @@ function LookupTable:updateOutput(input)
    else
       error("input must be a vector or matrix")
    end
-   print("LookupTable_F = ", sys.clock() - start)
+   self.t1 = self.t1 + sys.clock() - start
+   self.count = self.count + 1
+   if self.count == 50 then
+      print("LookupTable_F = ", self.t1)
+      print("LookupTable_B = ", self.t2)
+      self.t1 = 0
+      self.t2 = 0
+      self.count = 0
+   end
    return self.output
 end
 
@@ -93,7 +101,7 @@ function LookupTable:updateGradInput(input, gradOutput)
    if not self.gradInput:isSameSizeAs(input) then
       self.gradInput:resizeAs(input):zero()
    end
-   print("LookupTable_B = ", sys.clock() - start)
+   self.t2 = self.t2 + sys.clock() - start
    return self.gradInput
 end
 
@@ -118,7 +126,7 @@ function LookupTable:accGradParameters(input, gradOutput, scale)
       self.paddingValue or 0,
       scale or 1
    )
-   print("LookupTable_B = ", sys.clock() - start)
+   self.t2 = self.t2 + sys.clock() - start
 end
 
 function LookupTable:renorm(input)

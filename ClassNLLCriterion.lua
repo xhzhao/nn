@@ -13,6 +13,9 @@ function ClassNLLCriterion:__init(weights, sizeAverage, ignoreIndex)
     self.output_tensor = torch.zeros(1)
     self.total_weight_tensor = torch.ones(1)
     self.target = torch.zeros(1):long()
+    self.count = 0
+    self.t1=0
+    self.t2=0
 end
 
 function ClassNLLCriterion:__len()
@@ -49,7 +52,16 @@ function ClassNLLCriterion:updateOutput(input, target)
       self.ignoreIndex
    )
    self.output = self.output_tensor[1]
-   print("ClassNLLCriterion_F = ", sys.clock() - start)
+   self.t1 = self.t1 + sys.clock() - start
+   self.count = self.count + 1
+   if self.count == 50 then
+      print("ClassNLLCriterion_F = ", self.t1)
+      print("ClassNLLCriterion_B = ", self.t2)
+      self.t1 = 0
+      self.t2 = 0
+      self.count = 0
+   end
+
    return self.output, self.total_weight_tensor[1]
 end
 
@@ -80,6 +92,6 @@ function ClassNLLCriterion:updateGradInput(input, target)
       self.total_weight_tensor:cdata(),
       self.ignoreIndex
    )
-   print("ClassNLLCriterion_B = ", sys.clock() - start)
+   self.t2 = self.t2 + sys.clock() - start
    return self.gradInput
 end
