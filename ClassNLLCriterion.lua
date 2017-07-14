@@ -54,7 +54,7 @@ function ClassNLLCriterion:updateOutput(input, target)
    self.output = self.output_tensor[1]
    self.t1 = self.t1 + sys.clock() - start
    self.count = self.count + 1
-   if self.count == 50 then
+   if self.count == 500 then
       print("ClassNLLCriterion_F = ", self.t1)
       print("ClassNLLCriterion_B = ", self.t2)
       self.t1 = 0

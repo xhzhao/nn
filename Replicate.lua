@@ -38,7 +38,7 @@ function Replicate:updateOutput(input)
    self.output:set(input:storage(),input:storageOffset(),sz,st)
    self.t1 = self.t1 + sys.clock() - start
    self.count = self.count + 1
-   if self.count == 50 then
+   if self.count == 500 then
       print("Replicate_F = ", self.t1)
       print("Replicate_B = ", self.t2)
       self.t1 = 0
