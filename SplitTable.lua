@@ -28,7 +28,7 @@ function SplitTable:updateOutput(input)
    self.output = currentOutput
    self.t1 = self.t1 + sys.clock() - start
    self.count = self.count + 1
-   if self.count == 500 then
+   if self.count == 100 then
       print("SplitTable_F = ", self.t1)
       print("SplitTable_B = ", self.t2)
       self.t1 = 0

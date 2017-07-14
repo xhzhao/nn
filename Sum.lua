@@ -40,7 +40,7 @@ function Sum:updateOutput(input)
    end
    self.t1 = self.t1 + sys.clock() - start
    self.count = self.count + 1
-   if self.count == 500 then
+   if self.count == 100 then
       print("Sum_F = ", self.t1)
       print("Sum_B = ", self.t2)
       self.t1 = 0
