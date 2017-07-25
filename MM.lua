@@ -42,15 +42,7 @@ function MM:updateOutput(input)
     self.output:resize(a:size(1), a:size(2), b:size(3))
     self.output:bmm(a, b)
   end
-   self.t1 = self.t1 + sys.clock() - start
-   self.count = self.count + 1
-   if self.count == 100 then
-      print("MM_F = ", self.t1)
-      print("MM_B = ", self.t2)
-      self.t1 = 0
-      self.t2 = 0
-      self.count = 0
-   end
+   sys.MM_F = sys.MM_F + sys.clock() - start
 
   return self.output
 end
@@ -98,6 +90,6 @@ function MM:updateGradInput(input, gradOutput)
   else
     self.gradInput[2][f](self.gradInput[2], a, gradOutput)
   end
-  self.t2 = self.t2 + sys.clock() - start
+  sys.MM_B = sys.MM_B + sys.clock() - start
   return self.gradInput
 end

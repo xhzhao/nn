@@ -52,15 +52,7 @@ function ClassNLLCriterion:updateOutput(input, target)
       self.ignoreIndex
    )
    self.output = self.output_tensor[1]
-   self.t1 = self.t1 + sys.clock() - start
-   self.count = self.count + 1
-   if self.count == 100 then
-      print("ClassNLLCriterion_F = ", self.t1)
-      print("ClassNLLCriterion_B = ", self.t2)
-      self.t1 = 0
-      self.t2 = 0
-      self.count = 0
-   end
+   sys.NLL_F = sys.NLL_F + sys.clock() - start
 
    return self.output, self.total_weight_tensor[1]
 end
@@ -92,6 +84,6 @@ function ClassNLLCriterion:updateGradInput(input, target)
       self.total_weight_tensor:cdata(),
       self.ignoreIndex
    )
-   self.t2 = self.t2 + sys.clock() - start
+   sys.NLL_B = sys.NLL_B + sys.clock() - start
    return self.gradInput
 end

@@ -16,15 +16,8 @@ function CAddTable:updateOutput(input)
    for i=2,#input do
       self.output:add(input[i])
    end
-   self.t1 = self.t1 + sys.clock() - start
-   self.count = self.count + 1
-   if self.count == 100 then
-      print("CAddTable_F = ", self.t1)
-      print("CAddTable_B = ", self.t2)
-      self.t1 = 0
-      self.t2 = 0
-      self.count = 0
-   end
+   sys.CAddTable_F = sys.CAddTable_F + sys.clock() - start
+
 
 
    return self.output
@@ -44,6 +37,6 @@ function CAddTable:updateGradInput(input, gradOutput)
    for i=#input+1, #self.gradInput do
        self.gradInput[i] = nil
    end
-   self.t2 = self.t2 + sys.clock() - start
+   sys.CAddTable_B = sys.CAddTable_B + sys.clock() - start
    return self.gradInput
 end

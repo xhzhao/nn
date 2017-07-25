@@ -12,15 +12,7 @@ function CMulTable:updateOutput(input)
    for i=2,#input do
       self.output:cmul(input[i])
    end
-   self.t1 = self.t1 + sys.clock() - start
-   self.count = self.count + 1
-   if self.count == 100 then
-      print("CMulTable_F = ", self.t1)
-      print("CMulTable_B = ", self.t2)
-      self.t1 = 0
-      self.t2 = 0
-      self.count = 0
-   end
+   sys.CMulTable_F = sys.CMulTable_F + sys.clock() - start
 
    return self.output
 end
@@ -57,7 +49,7 @@ function CMulTable:updateGradInput(input, gradOutput)
    for i=#input+1, #self.gradInput do
        self.gradInput[i] = nil
    end
-   self.t2 = self.t2 + sys.clock() - start
+   sys.CMulTable_B = sys.CMulTable_B + sys.clock() - start
 
    return self.gradInput
 end

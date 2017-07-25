@@ -6,15 +6,7 @@ function LogSoftMax:updateOutput(input)
       input:cdata(),
       self.output:cdata()
    )
-   self.t1 = self.t1 + sys.clock() - start
-   self.count = self.count + 1
-   if self.count == 100 then
-      print("LogsoftMax_F = ", self.t1)
-      print("LogsoftMax_B = ", self.t2)
-      self.t1 = 0
-      self.t2 = 0
-      self.count = 0
-   end
+   sys.LogSoftMax_F = sys.LogSoftMax_F + sys.clock() - start
 
    return self.output
 end
@@ -27,6 +19,6 @@ function LogSoftMax:updateGradInput(input, gradOutput)
       self.gradInput:cdata(),
       self.output:cdata()
    )
-   self.t2 = self.t2 + sys.clock() - start
+   sys.LogSoftMax_B = sys.LogSoftMax_B + sys.clock() - start
    return self.gradInput
 end

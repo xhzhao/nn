@@ -33,15 +33,7 @@ function Dropout:updateOutput(input)
          self.output:mul(1-self.p)
       end
    end
-   self.t1 = self.t1 + sys.clock() - start
-   self.count = self.count + 1
-   if self.count == 100 then
-      print("Dropout_F = ", self.t1)
-      print("Dropout_B = ", self.t2)
-      self.t1 = 0
-      self.t2 = 0
-      self.count = 0
-   end
+   sys.Dropout_F = sys.Dropout_F + sys.clock() - start
 
    return self.output
 end
@@ -62,7 +54,7 @@ function Dropout:updateGradInput(input, gradOutput)
          self.gradInput:mul(1-self.p)
       end
    end
-   self.t2 = self.t2 + sys.clock() - start
+   sys.Dropout_B = sys.Dropout_B + sys.clock() - start
    return self.gradInput
 end
 
